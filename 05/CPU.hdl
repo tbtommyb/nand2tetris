@@ -41,9 +41,7 @@ CHIP CPU {
     PARTS:
     // i  _  _  a  c1 c2 c3 c4 c5 c6 d1 d2 d3 j1 j2 j3
     // 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00
-
-    Not(in=instruction[15], out=isAInstruction);
-    Not(in=isAInstruction, out=isCInstruction);
+    DMux(in=true, sel=instruction[15], a=isAInstruction, b=isCInstruction);
 
     // Store ALU output or new instruction?
     Mux16(a=instruction, b=ALUout, sel=isCInstruction, out=AInMuxOut);
