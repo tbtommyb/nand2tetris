@@ -78,7 +78,7 @@ CHIP CPU {
     And(a=isCInstruction, b=instruction[1], out=jeq);
     And(a=jeq, b=ZRout, out=jeqJumpOut);
 
-    // j3 & (!ng | zr)
+    // j3 & (!ng & !zr)
     And(a=isCInstruction, b=instruction[0], out=jgt);
     Not(in=NGout, out=isPositive);
     Not(in=ZRout, out=notZero);
