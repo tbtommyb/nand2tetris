@@ -1,6 +1,9 @@
-#include <regex>
-#include <iostream>
 #include "parser.hpp"
+
+const std::regex Parser::A_command{"^@(\\d*)"};
+const std::regex Parser::C_command{"(\\d*)=(\\d*);(\\d*)"};
+const std::regex Parser::C_command_no_dest{"(\\d*);(\\d*)"};
+const std::regex Parser::C_command_no_jump{"(\\d*)=(\\d*)"};
 
 Parser::Parser(std::ifstream& input) : stream(std::move(input)) { };
 
@@ -8,25 +11,20 @@ bool Parser::hasMoreCommands() noexcept
 {
     auto c = stream.peek();
     if (c == EOF) {
-        std::cout << "false" << std::endl;
         return false;
     }
-    std::cout << "true" << std::endl;
     return true;
 };
 
 void Parser::advance()
 {
-    std::getline(stream, currentLine);
-    std::cout << currentLine << std::endl;
+    std::string input;
+    std::getline(stream, input);
+    currentLine = sanitise(input);
 };
 
 std::experimental::optional<CommandType> const Parser::commandType()
 {
-    std::regex A_command{"^@(\\d*)"};
-    std::regex C_command{"(\\d*)=(\\d*);(\\d*)"};
-    std::regex C_command_no_dest{"(\\d*);(\\d*)"};
-    std::regex C_command_no_jump{"(\\d*)=(\\d*)"};
     std::smatch match;
 
     if (std::regex_match(currentLine, match, A_command)) {
@@ -88,7 +86,12 @@ std::string const& Parser::jump()
     return C_jump;
 };
 
-std::string sanitise(std::string input)
+std::string Parser::sanitise(std::string s)
 {
-    std::erase(std::remove_if(input.begin(), input.end(), std::isspace), input.end());
+    s.erase(std::remove_if(
+                           s.begin(),
+                           s.end(),
+                           [](unsigned char x) { return std::isspace(x); }),
+            s.end());
+    return s.erase(s.find("//"));
 };
