@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 #include "parser.hpp"
+#include "code.hpp"
 
 std::string getFilename(std::string input)
 {
@@ -29,23 +30,17 @@ int  main(int argc, char* argv[])
 
     while (parser.hasMoreCommands()) {
         parser.advance();
-        CommandType command;
+        Instruction instruction;
 
         try {
-            command = parser.commandType();
+            instruction = parser.parse();
         } catch (const InvalidCommand& e) {
             std::cerr << "Invalid command: " << e.what() << std::endl;
             exit(1);
         }
 
-        if (command == C_COMMAND) {
-            auto dest = parser.dest();
-            auto comp = parser.comp();
-            auto jump = parser.jump();
-        }
-        if ((command == A_COMMAND) || (command == L_COMMAND)) {
-            auto symbol = parser.symbol();
-        }
+        auto code = Code{instruction};
+        out << code.string() << std::endl;
     }
 
     out.close();

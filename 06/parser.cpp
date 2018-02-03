@@ -1,11 +1,30 @@
+#include <iostream>
+#include <algorithm>
 #include "parser.hpp"
 
 const std::regex Parser::A_command{"^@(\\d*)"};
-const std::regex Parser::C_command{"(\\d*)=(\\d*);(\\d*)"};
-const std::regex Parser::C_command_no_dest{"(\\d*);(\\d*)"};
-const std::regex Parser::C_command_no_jump{"(\\d*)=(\\d*)"};
+const std::regex Parser::C_command{"([A-Z]{1,3})=(.*);([A-Z]{3})"};
+const std::regex Parser::C_command_no_dest{"(.*);([A-Z]{3})"};
+const std::regex Parser::C_command_no_jump{"([A-Z]{1,3})=(.*)"};
 
+// TODO: check use of move here
 Parser::Parser(std::ifstream& input) : stream(std::move(input)) { };
+
+const Instruction Parser::parse() throw(InvalidCommand)
+{
+    auto type = commandType();
+    Instruction instruction{.type = type};
+
+    if (type == C_COMMAND) {
+        instruction.dest = dest();
+        instruction.comp = comp();
+        instruction.jump = jump();
+    } else {
+        instruction.symbol = symbol();
+    }
+
+    return instruction;
+}
 
 bool Parser::hasMoreCommands() noexcept
 {
@@ -21,6 +40,11 @@ void Parser::advance()
     std::string input;
     std::getline(stream, input);
     currentLine = sanitise(input);
+
+    // Skip empty lines
+    if (currentLine.length() == 0) {
+        advance();
+    }
 };
 
 CommandType const Parser::commandType() throw(InvalidCommand)
@@ -49,6 +73,19 @@ CommandType const Parser::commandType() throw(InvalidCommand)
         if (match.size() == 3) {
             C_comp = match[1].str();
             C_jump = match[2].str();
+
+            C_dest = "";
+
+            return CommandType::C_COMMAND;
+        }
+    }
+
+    if (std::regex_match(currentLine, match, C_command_no_jump)) {
+        if (match.size() == 3) {
+            C_dest = match[1].str();
+            C_comp = match[2].str();
+
+            C_jump = "";
 
             return CommandType::C_COMMAND;
         }
