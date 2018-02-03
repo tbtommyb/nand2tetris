@@ -2,10 +2,11 @@
 #include <algorithm>
 #include "parser.hpp"
 
-const std::regex Parser::A_command{"^@(\\d*)"};
-const std::regex Parser::C_command{"([A-Z]{1,3})=(.*);([A-Z]{3})"};
-const std::regex Parser::C_command_no_dest{"(.*);([A-Z]{3})"};
-const std::regex Parser::C_command_no_jump{"([A-Z]{1,3})=(.*)"};
+const std::regex Parser::A_command{"^@([0-9]+|[a-zA-Z_\\.\\$0-9]+)"};
+const std::regex Parser::L_command{"\\(([a-zA-Z_\\.\\$0-9]+)\\)"};
+const std::regex Parser::C_command{"([A-Z]{1,3})=(.+);([A-Z]{3})"};
+const std::regex Parser::C_command_no_dest{"(.+);([A-Z]{3})"};
+const std::regex Parser::C_command_no_jump{"([A-Z]{1,3})=(.+)"};
 
 // TODO: check use of move here
 Parser::Parser(std::ifstream& input) : stream(std::move(input)) { };
@@ -59,6 +60,14 @@ CommandType const Parser::commandType() throw(InvalidCommand)
         }
     }
 
+    if (std::regex_match(currentLine, match, L_command)) {
+        if (match.size() == 2) {
+            A_value = match[1].str();
+
+            return CommandType::L_COMMAND;
+        }
+    }
+
     if (std::regex_match(currentLine, match, C_command)) {
         if (match.size() == 4) {
             C_dest = match[1].str();
@@ -86,15 +95,6 @@ CommandType const Parser::commandType() throw(InvalidCommand)
             C_comp = match[2].str();
 
             C_jump = "";
-
-            return CommandType::C_COMMAND;
-        }
-    }
-
-    if (std::regex_match(currentLine, match, C_command)) {
-        if (match.size() == 3) {
-            C_dest = match[1].str();
-            C_comp = match[2].str();
 
             return CommandType::C_COMMAND;
         }

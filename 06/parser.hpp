@@ -33,6 +33,7 @@ private:
     std::ifstream stream;
     std::string currentLine, A_value, C_dest, C_comp, C_jump;
     static const std::regex A_command;
+    static const std::regex L_command;
     static const std::regex C_command;
     static const std::regex C_command_no_dest;
     static const std::regex C_command_no_jump;

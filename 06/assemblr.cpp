@@ -4,6 +4,7 @@
 #include <string>
 #include "parser.hpp"
 #include "code.hpp"
+#include "symbol_table.hpp"
 
 std::string getFilename(std::string input)
 {
@@ -26,7 +27,34 @@ int  main(int argc, char* argv[])
     auto filename = getFilename(input);
     std::ofstream out{filename + ".hack"};
 
-    Parser parser{prog};
+    SymbolTable symbols{};
+    Parser symbolParser{prog};
+    unsigned int instructionAddress = 0x0000;
+
+    while (symbolParser.hasMoreCommands()) {
+        symbolParser.advance();
+        Instruction instruction;
+
+        try {
+            instruction = symbolParser.parse();
+        } catch (const InvalidCommand& e) {
+            std::cerr << "Invalid command: " << e.what() << std::endl;
+            exit(1);
+        }
+
+        switch (instruction.type) {
+        case C_COMMAND:
+        case A_COMMAND:
+            instructionAddress++;
+            break;
+        case L_COMMAND:
+            symbols.addEntry(instruction.symbol, instructionAddress);
+            break;
+        }
+    }
+
+    std::ifstream prog2{input};
+    Parser parser{prog2};
 
     while (parser.hasMoreCommands()) {
         parser.advance();
@@ -39,8 +67,10 @@ int  main(int argc, char* argv[])
             exit(1);
         }
 
-        auto code = Code{instruction};
-        out << code.string() << std::endl;
+        auto code = Code{instruction, symbols};
+        if (instruction.type != L_COMMAND) {
+            out << code.string() << std::endl;
+        }
     }
 
     out.close();

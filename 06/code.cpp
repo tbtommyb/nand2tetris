@@ -57,15 +57,30 @@ std::map<std::string, std::string> compCodes = {
                                                 { "D|M", "1010101" }
 };
 
-Code::Code(const Instruction& instr) : instruction(instr)
+Code::Code(Instruction& instr, SymbolTable& mapping)
+    : mappings(mapping), instruction(instr)
 {
     // TODO ugly checking against type here
-    if (instr.type == C_COMMAND) {
+    switch (instr.type) {
+    case C_COMMAND:
         dest = std::bitset<3>(destCodes[instr.dest]);
         comp = std::bitset<7>(compCodes[instr.comp]);
         jump = std::bitset<3>(jumpCodes[instr.jump]);
-    } else {
-        value = std::bitset<15>(std::stoi(instr.symbol));
+        break;
+    case A_COMMAND:
+        try {
+            value = std::bitset<15>(std::stoi(instr.symbol));
+        } catch(const std::invalid_argument& e) {
+            // not a number
+            if (!mappings.contains(instr.symbol)) {
+                mappings.addVariable(instr.symbol);
+            }
+            auto address = mappings.getAddress(instr.symbol);
+            value = std::bitset<15>(address);
+        }
+        break;
+    case L_COMMAND:
+        break;
     }
 }
 
@@ -75,7 +90,7 @@ const std::string Code::string() const
     // TODO remove hardcoded strings here
     if (instruction.type == C_COMMAND) {
         str << "111" << comp.to_string() << dest.to_string() << jump.to_string();
-    } else {
+    } else if (instruction.type == A_COMMAND) {
         str << "0" << value.to_string();
     }
     return str.str();
