@@ -23,7 +23,7 @@ void Parser::advance()
     currentLine = sanitise(input);
 };
 
-std::experimental::optional<CommandType> const Parser::commandType()
+CommandType const Parser::commandType() throw(InvalidCommand)
 {
     std::smatch match;
 
@@ -63,7 +63,7 @@ std::experimental::optional<CommandType> const Parser::commandType()
         }
     }
 
-    return {};
+    throw InvalidCommand{currentLine};
 };
 
 const std::string& Parser::symbol() const
@@ -93,5 +93,9 @@ std::string Parser::sanitise(std::string s)
                            s.end(),
                            [](unsigned char x) { return std::isspace(x); }),
             s.end());
-    return s.erase(s.find("//"));
+    auto commentPos = s.find("//");
+    if (commentPos != std::string::npos) {
+        s.erase(commentPos);
+    }
+    return s;
 };

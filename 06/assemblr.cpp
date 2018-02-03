@@ -29,17 +29,21 @@ int  main(int argc, char* argv[])
 
     while (parser.hasMoreCommands()) {
         parser.advance();
+        CommandType command;
 
-        // TODO improve use of Optional
-        auto command = parser.commandType();
-        if (!command) { continue; }
+        try {
+            command = parser.commandType();
+        } catch (const InvalidCommand& e) {
+            std::cerr << "Invalid command: " << e.what() << std::endl;
+            exit(1);
+        }
 
-        if (*command == C_COMMAND) {
+        if (command == C_COMMAND) {
             auto dest = parser.dest();
             auto comp = parser.comp();
             auto jump = parser.jump();
         }
-        if ((*command == A_COMMAND) || (*command == L_COMMAND)) {
+        if ((command == A_COMMAND) || (command == L_COMMAND)) {
             auto symbol = parser.symbol();
         }
     }

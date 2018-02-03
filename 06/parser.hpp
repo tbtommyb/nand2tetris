@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <string>
 #include <fstream>
-#include <experimental/optional>
+#include "invalid_command.hpp"
 
 enum CommandType { A_COMMAND, C_COMMAND, L_COMMAND };
 
@@ -16,7 +16,7 @@ public:
     ~Parser() = default;
     bool hasMoreCommands() noexcept;
     void advance();
-    std::experimental::optional<CommandType> const commandType();
+    CommandType const commandType() throw(InvalidCommand);
     const std::string& symbol() const;
     const std::string& dest() const;
     const std::string& comp() const;
