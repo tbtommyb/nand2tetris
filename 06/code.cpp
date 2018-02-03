@@ -62,8 +62,8 @@ Code::Code(const Instruction& instr) : instruction(instr)
     // TODO ugly checking against type here
     if (instr.type == C_COMMAND) {
         dest = std::bitset<3>(destCodes[instr.dest]);
-        comp = std::bitset<7>(destCodes[instr.comp]);
-        jump = std::bitset<3>(destCodes[instr.jump]);
+        comp = std::bitset<7>(compCodes[instr.comp]);
+        jump = std::bitset<3>(jumpCodes[instr.jump]);
     } else {
         value = std::bitset<15>(std::stoi(instr.symbol));
     }
