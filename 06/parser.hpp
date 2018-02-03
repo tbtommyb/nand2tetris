@@ -17,10 +17,10 @@ public:
     bool hasMoreCommands() noexcept;
     void advance();
     std::experimental::optional<CommandType> const commandType();
-    std::string const& symbol();
-    std::string const& dest();
-    std::string const& comp();
-    std::string const& jump();
+    const std::string& symbol() const;
+    const std::string& dest() const;
+    const std::string& comp() const;
+    const std::string& jump() const;
 private:
     std::string sanitise(std::string);
     std::ifstream stream;

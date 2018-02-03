@@ -66,22 +66,22 @@ std::experimental::optional<CommandType> const Parser::commandType()
     return {};
 };
 
-std::string const& Parser::symbol()
+const std::string& Parser::symbol() const
 {
     return A_value;
 };
 
-std::string const& Parser::dest()
+const std::string& Parser::dest() const
 {
     return C_dest;
 };
 
-std::string const& Parser::comp()
+const std::string& Parser::comp() const
 {
     return C_comp;
 };
 
-std::string const& Parser::jump()
+const std::string& Parser::jump() const
 {
     return C_jump;
 };
