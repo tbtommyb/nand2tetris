@@ -15,28 +15,16 @@ std::string getFilename(std::string input)
     return "";
 };
 
-int  main(int argc, char* argv[])
+void buildSymbolTable(SymbolTable& table, Parser& parser)
 {
-    if (argc != 2) {
-        std::cerr << "USAGE: assemblr input.asm" << std::endl;
-        exit(1);
-    }
-    auto input = argv[1];
-    std::ifstream prog{input};
-
-    auto filename = getFilename(input);
-    std::ofstream out{filename + ".hack"};
-
-    SymbolTable symbols{};
-    Parser symbolParser{prog};
     unsigned int instructionAddress = 0x0000;
 
-    while (symbolParser.hasMoreCommands()) {
-        symbolParser.advance();
+    while (parser.hasMoreCommands()) {
+        parser.advance();
         Instruction instruction;
 
         try {
-            instruction = symbolParser.parse();
+            instruction = parser.parse();
         } catch (const InvalidCommand& e) {
             std::cerr << "Invalid command: " << e.what() << std::endl;
             exit(1);
@@ -48,13 +36,30 @@ int  main(int argc, char* argv[])
             instructionAddress++;
             break;
         case L_COMMAND:
-            symbols.addEntry(instruction.symbol, instructionAddress);
+            table.addEntry(instruction.symbol, instructionAddress);
             break;
         }
     }
+}
 
-    prog.seekg(0);
-    Parser parser{prog};
+int  main(int argc, char* argv[])
+{
+    if (argc != 2) {
+        std::cerr << "USAGE: assemblr input.asm" << std::endl;
+        exit(1);
+    }
+    auto input = argv[1];
+    std::ifstream program{input};
+
+    auto filename = getFilename(input);
+    std::ofstream out{filename + ".hack"};
+
+    SymbolTable symbols{};
+    Parser symbolParser{program};
+    buildSymbolTable(symbols, symbolParser);
+
+    program.seekg(0);
+    Parser parser{program};
 
     while (parser.hasMoreCommands()) {
         parser.advance();

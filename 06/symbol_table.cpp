@@ -25,8 +25,7 @@ void SymbolTable::addEntry(std::string symbol, unsigned int address)
 
 void SymbolTable::addVariable(std::string symbol)
 {
-    addEntry(symbol, currentVariableAddress);
-    currentVariableAddress++;
+    addEntry(symbol, currentVariableAddress++);
 }
 
 bool SymbolTable::contains(std::string symbol)
