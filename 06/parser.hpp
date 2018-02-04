@@ -30,7 +30,7 @@ private:
     const std::string& comp() const;
     const std::string& jump() const;
     std::string sanitise(std::string);
-    std::ifstream stream;
+    std::ifstream& stream;
     std::string currentLine, A_value, C_dest, C_comp, C_jump;
     static const std::regex A_command;
     static const std::regex L_command;

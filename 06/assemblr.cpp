@@ -53,8 +53,8 @@ int  main(int argc, char* argv[])
         }
     }
 
-    std::ifstream prog2{input};
-    Parser parser{prog2};
+    prog.seekg(0);
+    Parser parser{prog};
 
     while (parser.hasMoreCommands()) {
         parser.advance();
