@@ -2,7 +2,7 @@
 
 CodeWriter::CodeWriter(std::ostream& output) : out(output), labelIndex(0)
 {
-    writeEqualityBlock();
+    writeBootstrap();
 };
 
 void CodeWriter::output(const Command& command)
@@ -15,12 +15,38 @@ void CodeWriter::output(const Command& command)
     case CommandType::C_ARITHMETIC:
         decrementStackPtr();
         readStackToD();
-        decrementStackPtr();
-        readStackToA();
         if (command.arg1 == "add") {
-            sum();
+            decrementStackPtr();
+            readStackToA();
+            write("M=D+M");
+        } else if (command.arg1 == "sub") {
+            decrementStackPtr();
+            readStackToA();
+            write("M=M-D");
+        } else if (command.arg1 == "neg") {
+            write("M=-M");
         } else if (command.arg1 == "eq") {
-            eq();
+            decrementStackPtr();
+            readStackToA();
+            compare("EQ");
+        } else if (command.arg1 == "gt") {
+            decrementStackPtr();
+            readStackToA();
+            compare("GT");
+        } else if (command.arg1 == "lt") {
+            decrementStackPtr();
+            readStackToA();
+            compare("LT");
+        } else if (command.arg1 == "and") {
+            decrementStackPtr();
+            readStackToA();
+            write("M=M&D");
+        } else if (command.arg1 == "or") {
+            decrementStackPtr();
+            readStackToA();
+            write("M=M|D");
+        } else if (command.arg1 == "not") {
+            write("M=!M");
         }
         incrementStackPtr();
         break;
@@ -59,12 +85,7 @@ void CodeWriter::readStackToA()
     write("A=M");
 };
 
-void CodeWriter::sum()
-{
-    write("M=D+M");
-};
-
-void CodeWriter::eq()
+void CodeWriter::compare(std::string comparison)
 {
     std::string labelName = "JUMPPOINT" + std::to_string(labelIndex++);
     write("D=D-M");
@@ -74,7 +95,7 @@ void CodeWriter::eq()
     write("D=A");
     write("@R14");
     write("M=D");
-    write("@EQUALITY");
+    write("@" + comparison);
     write("0;JMP");
     write("(" + labelName + ")");
 };
@@ -84,15 +105,27 @@ void CodeWriter::write(std::string arg)
     out << arg << std::endl;
 };
 
-void CodeWriter::writeEqualityBlock()
+void CodeWriter::writeBootstrap()
 {
     write("@START");
     write("0;JEQ");
-    write("(EQUALITY)");
+    equalityFn("(EQ)", "D;JEQ");
+    equalityFn("(LT)", "D;JGT");
+    equalityFn("(GT)", "D;JLT");
+    write("(END)");
+    write("@R14");
+    write("A=M");
+    write("0;JEQ");
+    write("(START)");
+};
+
+void CodeWriter::equalityFn(std::string label, std::string comparison)
+{
+    write(label);
     write("@R13");
     write("D=M");
     write("@TRUE");
-    write("D;JEQ");
+    write(comparison);
     write("@FALSE");
     write("0;JEQ");
     write("(TRUE)");
@@ -105,9 +138,4 @@ void CodeWriter::writeEqualityBlock()
     write("@SP");
     write("A=M");
     write("M=0");
-    write("(END)");
-    write("@R14");
-    write("A=M");
-    write("0;JEQ");
-    write("(START)");
 };

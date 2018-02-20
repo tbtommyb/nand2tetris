@@ -2,6 +2,7 @@
 #define __code_writer__
 
 #include <istream>
+#include <string>
 #include "parser.hpp"
 
 class CodeWriter {
@@ -14,10 +15,10 @@ private:
     void decrementStackPtr();
     void readStackToD();
     void readStackToA();
-    void sum();
-    void eq();
+    void compare(std::string comparison);
     void write(std::string arg);
-    void writeEqualityBlock();
+    void writeBootstrap();
+    void equalityFn(std::string label, std::string comparison);
     std::ostream& out;
     int labelIndex;
 };
