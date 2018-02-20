@@ -33,7 +33,15 @@ int main(int argc, char* argv[])
         parser.advance();
 
         Command command = parser.parse();
-        writer.output(command);
+        switch(command.type) {
+        case CommandType::C_PUSH:
+        case CommandType::C_POP:
+            writer.writePushPop(command);
+            break;
+        case CommandType::C_ARITHMETIC:
+            writer.writeArithmetic(command);
+            break;
+        }
     }
 
     return 0;

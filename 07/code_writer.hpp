@@ -8,9 +8,14 @@
 class CodeWriter {
 public:
     CodeWriter(std::ostream&);
-    void output(const Command&);
+    void writePushPop(const Command&);
+    void writeArithmetic(const Command&);
 private:
-    void writeToStack(int value);
+    void writeConstant(int value);
+    void writeFromSegment(std::string, int);
+    void writeFromAddress(std::string, int);
+    void writeToSegment(std::string, int);
+    void writeToAddress(std::string, int);
     void incrementStackPtr();
     void decrementStackPtr();
     void readStackToD();

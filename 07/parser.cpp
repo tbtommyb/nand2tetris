@@ -19,7 +19,8 @@ CommandMap commands = {
                        { "and", CommandType::C_ARITHMETIC },
                        { "or", CommandType::C_ARITHMETIC },
                        { "not", CommandType::C_ARITHMETIC },
-                       { "push", CommandType::C_PUSH }
+                       { "push", CommandType::C_PUSH },
+                       { "pop", CommandType::C_POP },
 };
 
 Parser::Parser(std::istream& input) : source(input) { };
@@ -56,6 +57,7 @@ Command Parser::parse()
         command.arg1 = elems[0];
         break;
     case CommandType::C_PUSH:
+    case CommandType::C_POP:
         command.arg1 = elems[1];
         command.arg2 = std::stoi(elems[2]);
         break;
