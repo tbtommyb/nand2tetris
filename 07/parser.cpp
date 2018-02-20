@@ -37,7 +37,7 @@ void Parser::advance()
     currentCommand = sanitise(input);
 
     // Skip empty lines
-    if (currentCommand.length() == 0) {
+    if (currentCommand.empty()) {
         advance();
     }
 };
