@@ -55,38 +55,34 @@ void CodeWriter::writeArithmetic(const Command& command)
 {
     decrementStackPtr();
     readStackToD();
+
+    if (command.arg1 == "neg") {
+        write("M=-M");
+        incrementStackPtr();
+        return;
+    }
+    if (command.arg1 == "not") {
+        write("M=!M");
+        incrementStackPtr();
+        return;
+    }
+
+    decrementStackPtr();
+    readStackToA();
     if (command.arg1 == "add") {
-        decrementStackPtr();
-        readStackToA();
         write("M=D+M");
     } else if (command.arg1 == "sub") {
-        decrementStackPtr();
-        readStackToA();
         write("M=M-D");
-    } else if (command.arg1 == "neg") {
-        write("M=-M");
     } else if (command.arg1 == "eq") {
-        decrementStackPtr();
-        readStackToA();
         compare("EQ");
     } else if (command.arg1 == "gt") {
-        decrementStackPtr();
-        readStackToA();
         compare("GT");
     } else if (command.arg1 == "lt") {
-        decrementStackPtr();
-        readStackToA();
         compare("LT");
     } else if (command.arg1 == "and") {
-        decrementStackPtr();
-        readStackToA();
         write("M=M&D");
     } else if (command.arg1 == "or") {
-        decrementStackPtr();
-        readStackToA();
         write("M=M|D");
-    } else if (command.arg1 == "not") {
-        write("M=!M");
     }
     incrementStackPtr();
 };
