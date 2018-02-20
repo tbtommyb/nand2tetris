@@ -23,13 +23,13 @@ struct Command {
 
 class Parser {
 public:
-    Parser(std::ifstream&);
+    Parser(std::istream&);
     ~Parser() = default;
     bool hasMoreCommands() noexcept;
     void advance();
     Command parse();
 private:
-    std::ifstream& source;
+    std::istream& source;
     std::string currentCommand;
     std::string sanitise(std::string);
 };

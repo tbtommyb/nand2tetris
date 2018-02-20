@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include "parser.hpp"
+#include "code_writer.hpp"
 
 std::string getName(std::string input)
 {
@@ -26,18 +27,14 @@ int main(int argc, char* argv[])
     std::ofstream out{name + ".asm"};
 
     Parser parser{input};
+    CodeWriter writer{out};
 
     while (parser.hasMoreCommands()) {
         parser.advance();
 
         Command command = parser.parse();
-        std::cout << command.type << std::endl;
-        std::cout << command.arg1 << std::endl;
-        std::cout << command.arg2 << std::endl;
+        writer.output(command);
     }
-
-    input.close();
-    out.close();
 
     return 0;
 };

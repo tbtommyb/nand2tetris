@@ -22,7 +22,7 @@ CommandMap commands = {
                        { "push", CommandType::C_PUSH }
 };
 
-Parser::Parser(std::ifstream& input) : source(input) { };
+Parser::Parser(std::istream& input) : source(input) { };
 
 bool Parser::hasMoreCommands() noexcept
 {
@@ -64,6 +64,7 @@ Command Parser::parse()
     return command;
 };
 
+// TODO - not handling comments and empty lines correctly
 std::string Parser::sanitise(std::string s)
 {
     auto commentPos = s.find("//");
