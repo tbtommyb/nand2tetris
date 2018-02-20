@@ -7,7 +7,7 @@
 
 class CodeWriter {
 public:
-    CodeWriter(std::ostream&);
+    CodeWriter(std::ostream&, std::string filename);
     void writePushPop(const Command&);
     void writeArithmetic(const Command&);
 private:
@@ -26,6 +26,7 @@ private:
     void equalityFn(std::string label, std::string comparison);
     std::ostream& out;
     int labelIndex;
+    std::string filename;
 };
 
 #endif

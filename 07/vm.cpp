@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
     std::ofstream out{name + ".asm"};
 
     Parser parser{input};
-    CodeWriter writer{out};
+    CodeWriter writer{out, name};
 
     while (parser.hasMoreCommands()) {
         parser.advance();

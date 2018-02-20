@@ -1,6 +1,7 @@
 #include "code_writer.hpp"
 
-CodeWriter::CodeWriter(std::ostream& output) : out(output), labelIndex(0)
+CodeWriter::CodeWriter(std::ostream& output, std::string filename)
+    : out(output), labelIndex(0), filename(filename)
 {
     writeBootstrap();
 };
@@ -23,6 +24,8 @@ void CodeWriter::writePushPop(const Command& command)
             writeFromAddress("5", command.arg2);
         } else if (command.arg1 == "pointer") {
             writeFromAddress("3", command.arg2);
+        } else if (command.arg1 == "static") {
+            writeFromAddress(filename + ".", command.arg2);
         }
         incrementStackPtr();
         break;
@@ -41,6 +44,8 @@ void CodeWriter::writePushPop(const Command& command)
             writeToAddress("5", command.arg2);
         } else if (command.arg1 == "pointer") {
             writeToAddress("3", command.arg2);
+        } else if (command.arg1 == "static") {
+            writeToAddress(filename + ".", command.arg2);
         }
         break;
     }
