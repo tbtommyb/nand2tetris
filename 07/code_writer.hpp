@@ -19,10 +19,10 @@ private:
     void writeToAddress(std::string, int);
     void incrementPointer(std::string);
     void decrementPointer(std::string);
-    void writeToPointer(std::string);
-    void loadPointer(std::string, std::string);
-    void loadValue(std::string);
-    void saveValue(std::string);
+    void writeToPointer(std::string, std::string);
+    void loadFromPointer(std::string, std::string);
+    void loadValue(std::string, std::string);
+    void saveValueTo(std::string);
     void compare(std::string);
     void write(std::string);
     void writeBootstrap();

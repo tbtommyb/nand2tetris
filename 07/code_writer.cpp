@@ -94,7 +94,7 @@ void CodeWriter::writeArithmetic(const Command& command)
 void CodeWriter::pop(std::string dest)
 {
     decrementPointer("SP");
-    loadPointer("SP", "A");
+    loadFromPointer("SP", "A");
     if (dest == "D") {
         write("D=M");
     };
@@ -102,84 +102,86 @@ void CodeWriter::pop(std::string dest)
 
 void CodeWriter::writeConstant(int value)
 {
-    loadValue(std::to_string(value));
-    writeToPointer("SP");
+    loadValue(std::to_string(value), "D");
+    writeToPointer("SP", "D");
 };
 
 void CodeWriter::writeFromSegment(std::string segment, int index)
 {
-    loadValue(std::to_string(index));
-    loadPointer(segment, "A");
+    loadValue(std::to_string(index), "D");
+    loadFromPointer(segment, "A");
     write("A=A+D");
     write("D=M");
-    writeToPointer("SP");
+    writeToPointer("SP", "D");
 };
 
 void CodeWriter::writeFromAddress(std::string address, int index)
 {
-    loadValue(std::to_string(index));
-    write("@" + address);
+    loadValue(std::to_string(index), "D");
+    loadValue(address, "A");
     write("A=A+D");
     write("D=M");
-    writeToPointer("SP");
+    writeToPointer("SP", "D");
 };
 
 void CodeWriter::writeToSegment(std::string segment, int index)
 {
-    loadValue(std::to_string(index));
-    loadPointer(segment, "A");
+    loadValue(std::to_string(index), "D");
+    loadFromPointer(segment, "A");
     write("D=A+D");
-    saveValue("R13");
-    loadPointer("SP", "D");
-    writeToPointer("R13");
+    saveValueTo("R13");
+    loadFromPointer("SP", "D");
+    writeToPointer("R13", "D");
 };
 
 void CodeWriter::writeToAddress(std::string address, int index)
 {
-    loadValue(std::to_string(index));
-    write("@" + address);
+    loadValue(std::to_string(index), "D");
+    loadValue(address, "A");
     write("D=A+D");
-    saveValue("R13");
-    loadPointer("SP", "D");
-    writeToPointer("R13");
+    saveValueTo("R13");
+    loadFromPointer("SP", "D");
+    writeToPointer("R13", "D");
 };
 
 void CodeWriter::incrementPointer(std::string address)
 {
-    write("@" + address);
+    loadValue(address, "A");
     write("M=M+1");
 };
 
 void CodeWriter::decrementPointer(std::string address)
 {
-    write("@" + address);
+    loadValue(address, "A");
     write("M=M-1");
 };
 
-void CodeWriter::writeToPointer(std::string address)
+void CodeWriter::writeToPointer(std::string address, std::string val)
 {
-    loadPointer(address, "A");
-    write("M=D");
+    loadFromPointer(address, "A");
+    write("M=" + val);
 };
 
-void CodeWriter::loadPointer(std::string address, std::string dest)
+void CodeWriter::loadFromPointer(std::string address, std::string dest)
 {
-    write("@" + address);
+    loadValue(address, "A");
     write("A=M");
     if (dest == "D") {
         write("D=M");
     }
 };
 
-void CodeWriter::loadValue(std::string address)
+void CodeWriter::loadValue(std::string value, std::string dest)
 {
-    write("@" + address);
-    write("D=A");
+    write("@" + value);
+    if (dest == "D") {
+        write("D=A");
+    }
 };
 
-void CodeWriter::saveValue(std::string address)
+void CodeWriter::saveValueTo(std::string address)
 {
-    write("@" + address);
+    loadValue(address, "A");
     write("M=D");
 };
 
@@ -187,12 +189,9 @@ void CodeWriter::compare(std::string comparison)
 {
     std::string labelName = "JUMPPOINT" + std::to_string(labelIndex++);
     write("D=D-M");
-    write("@R13");
-    write("M=D");
-    write("@" + labelName);
-    write("D=A");
-    write("@R14");
-    write("M=D");
+    saveValueTo("R13");
+    loadValue(labelName, "D");
+    saveValueTo("R14");
     write("@" + comparison);
     write("0;JMP");
     write("(" + labelName + ")");
@@ -211,8 +210,7 @@ void CodeWriter::writeBootstrap()
     equalityFn("(LT)", "D;JGT");
     equalityFn("(GT)", "D;JLT");
     write("(END)");
-    write("@R14");
-    write("A=M");
+    loadFromPointer("R14", "A");
     write("0;JEQ");
     write("(START)");
 };
@@ -227,13 +225,9 @@ void CodeWriter::equalityFn(std::string label, std::string comparison)
     write("@FALSE");
     write("0;JEQ");
     write("(TRUE)");
-    write("@SP");
-    write("A=M");
-    write("M=-1");
+    writeToPointer("SP", "-1");
     write("@END");
     write("0;JEQ");
     write("(FALSE)");
-    write("@SP");
-    write("A=M");
-    write("M=0");
+    writeToPointer("SP", "0");
 };
