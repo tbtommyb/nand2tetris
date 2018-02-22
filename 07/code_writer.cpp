@@ -1,4 +1,37 @@
+#include <map>
 #include "code_writer.hpp"
+
+typedef std::map<std::string, std::string> CommandMap;
+
+CommandMap addresses = {
+    { "temp", "5" },
+    { "pointer", "3" }
+};
+
+CommandMap segments = {
+    { "argument", "ARG" },
+    { "local", "LCL" },
+    { "this", "THIS" },
+    { "that", "THAT" }
+};
+
+CommandMap binaryArithmetic = {
+    { "add", "M=D+M" },
+    { "sub", "M=M-D" },
+    { "and", "M=M&D" },
+    { "or", "M=M|D" }
+};
+
+CommandMap unaryArithmetic = {
+    { "neg", "M=-M" },
+    { "not", "M=!M" }
+};
+
+CommandMap comparisons = {
+    { "eq", "EQ" },
+    { "lt", "LT" },
+    { "gt", "GT" }
+};
 
 CodeWriter::CodeWriter(std::ostream& output, std::string filename)
     : out(output), labelIndex(0), filename(filename)
@@ -8,177 +41,146 @@ CodeWriter::CodeWriter(std::ostream& output, std::string filename)
 
 void CodeWriter::writePushPop(const Command& command)
 {
+    auto cmd = command.arg1;
+
     switch(command.type) {
     case CommandType::C_PUSH:
-        if (command.arg1 == "constant") {
+        if (cmd == "constant") {
             writeConstant(command.arg2);
-        } else if (command.arg1 == "argument") {
-            writeFromSegment("ARG", command.arg2);
-        } else if (command.arg1 == "local") {
-            writeFromSegment("LCL", command.arg2);
-        } else if (command.arg1 == "this") {
-            writeFromSegment("THIS", command.arg2);
-        } else if (command.arg1 == "that") {
-            writeFromSegment("THAT", command.arg2);
-        } else if (command.arg1 == "temp") {
-            writeFromAddress("5", command.arg2);
-        } else if (command.arg1 == "pointer") {
-            writeFromAddress("3", command.arg2);
-        } else if (command.arg1 == "static") {
+        } else if (cmd == "static") {
             writeFromAddress(filename + ".", command.arg2);
+        } else if (cmd == "temp" || cmd == "pointer") {
+            writeFromAddress(addresses.find(cmd)->second, command.arg2);
+        } else if (cmd == "argument" || cmd == "local" || cmd == "this" || cmd == "that") {
+            writeFromSegment(segments.find(cmd)->second, command.arg2);
         }
-        incrementStackPtr();
+
+        incrementPointer("SP");
         break;
     case CommandType::C_POP:
-        decrementStackPtr();
-        readStackToA();
-        if (command.arg1 == "argument") {
-            writeToSegment("ARG", command.arg2);
-        } else if (command.arg1 == "local") {
-            writeToSegment("LCL", command.arg2);
-        } else if (command.arg1 == "this") {
-            writeToSegment("THIS", command.arg2);
-        } else if (command.arg1 == "that") {
-            writeToSegment("THAT", command.arg2);
-        } else if (command.arg1 == "temp") {
-            writeToAddress("5", command.arg2);
-        } else if (command.arg1 == "pointer") {
-            writeToAddress("3", command.arg2);
-        } else if (command.arg1 == "static") {
+        pop("A");
+
+        if (cmd == "static") {
             writeToAddress(filename + ".", command.arg2);
+        } else if (cmd == "temp" || cmd == "pointer") {
+            writeToAddress(addresses.find(cmd)->second, command.arg2);
+        } else if (cmd == "argument" || cmd == "local" || cmd == "this" || cmd == "that") {
+            writeToSegment(segments.find(cmd)->second, command.arg2);
         }
+
         break;
     }
 };
 
 void CodeWriter::writeArithmetic(const Command& command)
 {
-    decrementStackPtr();
-    readStackToD();
+    pop("D");
 
-    if (command.arg1 == "neg") {
-        write("M=-M");
-        incrementStackPtr();
-        return;
-    }
-    if (command.arg1 == "not") {
-        write("M=!M");
-        incrementStackPtr();
-        return;
+    auto cmd = command.arg1;
+    if (cmd == "neg" || cmd == "not") {
+        write(unaryArithmetic.find(cmd)->second);
+    } else {
+        pop("A");
+        if (cmd == "add" || cmd == "sub" || cmd == "and" || cmd == "or") {
+            write(binaryArithmetic.find(cmd)->second);
+        } else if (cmd == "eq" || cmd == "gt" || cmd == "lt") {
+            compare(comparisons.find(cmd)->second);
+        }
     }
 
-    decrementStackPtr();
-    readStackToA();
-    if (command.arg1 == "add") {
-        write("M=D+M");
-    } else if (command.arg1 == "sub") {
-        write("M=M-D");
-    } else if (command.arg1 == "eq") {
-        compare("EQ");
-    } else if (command.arg1 == "gt") {
-        compare("GT");
-    } else if (command.arg1 == "lt") {
-        compare("LT");
-    } else if (command.arg1 == "and") {
-        write("M=M&D");
-    } else if (command.arg1 == "or") {
-        write("M=M|D");
-    }
-    incrementStackPtr();
+    incrementPointer("SP");
+};
+
+void CodeWriter::pop(std::string dest)
+{
+    decrementPointer("SP");
+    loadPointer("SP", "A");
+    if (dest == "D") {
+        write("D=M");
+    };
 };
 
 void CodeWriter::writeConstant(int value)
 {
-    write("@" + std::to_string(value));
-    write("D=A");
-    write("@SP");
-    write("A=M");
-    write("M=D");
+    loadValue(std::to_string(value));
+    writeToPointer("SP");
 };
 
 void CodeWriter::writeFromSegment(std::string segment, int index)
 {
-    write("@" + std::to_string(index));
-    write("D=A");
-    write("@" + segment);
-    write("A=M");
+    loadValue(std::to_string(index));
+    loadPointer(segment, "A");
     write("A=A+D");
     write("D=M");
-    write("@SP");
-    write("A=M");
-    write("M=D");
+    writeToPointer("SP");
 };
 
 void CodeWriter::writeFromAddress(std::string address, int index)
 {
-    write("@" + std::to_string(index));
-    write("D=A");
+    loadValue(std::to_string(index));
     write("@" + address);
     write("A=A+D");
     write("D=M");
-    write("@SP");
-    write("A=M");
-    write("M=D");
+    writeToPointer("SP");
 };
 
 void CodeWriter::writeToSegment(std::string segment, int index)
 {
-    write("D=M");
-    write("@R13");
-    write("M=D");
-    write("@" + std::to_string(index));
-    write("D=A");
-    write("@" + segment);
-    write("A=M");
+    loadValue(std::to_string(index));
+    loadPointer(segment, "A");
     write("D=A+D");
-    write("@R14");
-    write("M=D");
-    write("@R13");
-    write("D=M");
-    write("@R14");
-    write("A=M");
-    write("M=D");
+    saveValue("R13");
+    loadPointer("SP", "D");
+    writeToPointer("R13");
 };
 
 void CodeWriter::writeToAddress(std::string address, int index)
 {
-    write("D=M");
-    write("@R13");
-    write("M=D");
-    write("@" + std::to_string(index));
-    write("D=A");
+    loadValue(std::to_string(index));
     write("@" + address);
     write("D=A+D");
-    write("@R14");
-    write("M=D");
-    write("@R13");
-    write("D=M");
-    write("@R14");
-    write("A=M");
-    write("M=D");
+    saveValue("R13");
+    loadPointer("SP", "D");
+    writeToPointer("R13");
 };
 
-void CodeWriter::incrementStackPtr()
+void CodeWriter::incrementPointer(std::string address)
 {
-    write("@SP");
+    write("@" + address);
     write("M=M+1");
 };
 
-void CodeWriter::decrementStackPtr()
+void CodeWriter::decrementPointer(std::string address)
 {
-    write("@SP");
+    write("@" + address);
     write("M=M-1");
 };
 
-void CodeWriter::readStackToD()
+void CodeWriter::writeToPointer(std::string address)
 {
-    readStackToA();
-    write("D=M");
+    loadPointer(address, "A");
+    write("M=D");
 };
 
-void CodeWriter::readStackToA()
+void CodeWriter::loadPointer(std::string address, std::string dest)
 {
+    write("@" + address);
     write("A=M");
+    if (dest == "D") {
+        write("D=M");
+    }
+};
+
+void CodeWriter::loadValue(std::string address)
+{
+    write("@" + address);
+    write("D=A");
+};
+
+void CodeWriter::saveValue(std::string address)
+{
+    write("@" + address);
+    write("M=D");
 };
 
 void CodeWriter::compare(std::string comparison)

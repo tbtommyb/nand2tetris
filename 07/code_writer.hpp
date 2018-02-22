@@ -11,17 +11,20 @@ public:
     void writePushPop(const Command&);
     void writeArithmetic(const Command&);
 private:
-    void writeConstant(int value);
+    void pop(std::string);
+    void writeConstant(int);
     void writeFromSegment(std::string, int);
     void writeFromAddress(std::string, int);
     void writeToSegment(std::string, int);
     void writeToAddress(std::string, int);
-    void incrementStackPtr();
-    void decrementStackPtr();
-    void readStackToD();
-    void readStackToA();
-    void compare(std::string comparison);
-    void write(std::string arg);
+    void incrementPointer(std::string);
+    void decrementPointer(std::string);
+    void writeToPointer(std::string);
+    void loadPointer(std::string, std::string);
+    void loadValue(std::string);
+    void saveValue(std::string);
+    void compare(std::string);
+    void write(std::string);
     void writeBootstrap();
     void equalityFn(std::string label, std::string comparison);
     std::ostream& out;
