@@ -33,7 +33,7 @@ CommandMap comparisons = {
     { "gt", "GT" }
 };
 
-CodeWriter::CodeWriter(std::ostream& output, std::string filename)
+CodeWriter::CodeWriter(std::ostream& output, const std::string& filename)
     : out(output), labelIndex(0), filename(filename)
 {
     writeBootstrap();
@@ -91,7 +91,7 @@ void CodeWriter::writeArithmetic(const Command& command)
     incrementPointer("SP");
 };
 
-void CodeWriter::pop(std::string dest)
+void CodeWriter::pop(const std::string& dest)
 {
     decrementPointer("SP");
     loadFromPointer("SP", "A");
@@ -106,7 +106,7 @@ void CodeWriter::writeConstant(int value)
     writeToPointer("SP", "D");
 };
 
-void CodeWriter::writeFromSegment(std::string segment, int index)
+void CodeWriter::writeFromSegment(const std::string& segment, int index)
 {
     loadValue(std::to_string(index), "D");
     loadFromPointer(segment, "A");
@@ -115,7 +115,7 @@ void CodeWriter::writeFromSegment(std::string segment, int index)
     writeToPointer("SP", "D");
 };
 
-void CodeWriter::writeFromAddress(std::string address, int index)
+void CodeWriter::writeFromAddress(const std::string& address, int index)
 {
     loadValue(std::to_string(index), "D");
     loadValue(address, "A");
@@ -124,7 +124,7 @@ void CodeWriter::writeFromAddress(std::string address, int index)
     writeToPointer("SP", "D");
 };
 
-void CodeWriter::writeToSegment(std::string segment, int index)
+void CodeWriter::writeToSegment(const std::string& segment, int index)
 {
     loadValue(std::to_string(index), "D");
     loadFromPointer(segment, "A");
@@ -134,7 +134,7 @@ void CodeWriter::writeToSegment(std::string segment, int index)
     writeToPointer("R13", "D");
 };
 
-void CodeWriter::writeToAddress(std::string address, int index)
+void CodeWriter::writeToAddress(const std::string& address, int index)
 {
     loadValue(std::to_string(index), "D");
     loadValue(address, "A");
@@ -144,25 +144,25 @@ void CodeWriter::writeToAddress(std::string address, int index)
     writeToPointer("R13", "D");
 };
 
-void CodeWriter::incrementPointer(std::string address)
+void CodeWriter::incrementPointer(const std::string& address)
 {
     loadValue(address, "A");
     write("M=M+1");
 };
 
-void CodeWriter::decrementPointer(std::string address)
+void CodeWriter::decrementPointer(const std::string& address)
 {
     loadValue(address, "A");
     write("M=M-1");
 };
 
-void CodeWriter::writeToPointer(std::string address, std::string val)
+void CodeWriter::writeToPointer(const std::string& address, const std::string& val)
 {
     loadFromPointer(address, "A");
     write("M=" + val);
 };
 
-void CodeWriter::loadFromPointer(std::string address, std::string dest)
+void CodeWriter::loadFromPointer(const std::string& address, const std::string& dest)
 {
     loadValue(address, "A");
     write("A=M");
@@ -171,7 +171,7 @@ void CodeWriter::loadFromPointer(std::string address, std::string dest)
     }
 };
 
-void CodeWriter::loadValue(std::string value, std::string dest)
+void CodeWriter::loadValue(const std::string& value, const std::string& dest)
 {
     write("@" + value);
     if (dest == "D") {
@@ -179,13 +179,13 @@ void CodeWriter::loadValue(std::string value, std::string dest)
     }
 };
 
-void CodeWriter::saveValueTo(std::string address)
+void CodeWriter::saveValueTo(const std::string& address)
 {
     loadValue(address, "A");
     write("M=D");
 };
 
-void CodeWriter::compare(std::string comparison)
+void CodeWriter::compare(const std::string& comparison)
 {
     std::string labelName = "JUMPPOINT" + std::to_string(labelIndex++);
     write("D=D-M");
@@ -197,7 +197,7 @@ void CodeWriter::compare(std::string comparison)
     write("(" + labelName + ")");
 };
 
-void CodeWriter::write(std::string arg)
+void CodeWriter::write(const std::string& arg)
 {
     out << arg << std::endl;
 };
@@ -215,7 +215,7 @@ void CodeWriter::writeBootstrap()
     write("(START)");
 };
 
-void CodeWriter::equalityFn(std::string label, std::string comparison)
+void CodeWriter::equalityFn(const std::string& label, const std::string& comparison)
 {
     write(label);
     write("@R13");

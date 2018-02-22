@@ -7,26 +7,26 @@
 
 class CodeWriter {
 public:
-    CodeWriter(std::ostream&, std::string filename);
-    void writePushPop(const Command&);
-    void writeArithmetic(const Command&);
+    CodeWriter(std::ostream& output, const std::string& filename);
+    void writePushPop(const Command& command);
+    void writeArithmetic(const Command& command);
 private:
-    void pop(std::string);
-    void writeConstant(int);
-    void writeFromSegment(std::string, int);
-    void writeFromAddress(std::string, int);
-    void writeToSegment(std::string, int);
-    void writeToAddress(std::string, int);
-    void incrementPointer(std::string);
-    void decrementPointer(std::string);
-    void writeToPointer(std::string, std::string);
-    void loadFromPointer(std::string, std::string);
-    void loadValue(std::string, std::string);
-    void saveValueTo(std::string);
-    void compare(std::string);
-    void write(std::string);
+    void pop(const std::string& dest);
+    void writeConstant(int value);
+    void writeFromSegment(const std::string& segment, int index);
+    void writeFromAddress(const std::string& address, int index);
+    void writeToSegment(const std::string& segment, int index);
+    void writeToAddress(const std::string& address, int index);
+    void incrementPointer(const std::string& address);
+    void decrementPointer(const std::string& address);
+    void writeToPointer(const std::string& address, const std::string& val);
+    void loadFromPointer(const std::string& address, const std::string& dest);
+    void loadValue(const std::string& value, const std::string& dest);
+    void saveValueTo(const std::string& address);
+    void compare(const std::string& comparison);
+    void write(const std::string& arg);
     void writeBootstrap();
-    void equalityFn(std::string label, std::string comparison);
+    void equalityFn(const std::string& label, const std::string& comparison);
     std::ostream& out;
     int labelIndex;
     std::string filename;
