@@ -41,6 +41,15 @@ int main(int argc, char* argv[])
         case CommandType::C_ARITHMETIC:
             writer.writeArithmetic(command);
             break;
+        case CommandType::C_LABEL:
+            writer.writeLabel(command);
+            break;
+        case CommandType::C_GOTO:
+            writer.writeGoto(command);
+            break;
+        case CommandType::C_IF:
+            writer.writeIf(command);
+            break;
         }
     }
 

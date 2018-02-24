@@ -91,6 +91,25 @@ void CodeWriter::writeArithmetic(const Command& command)
     incrementPointer("SP");
 };
 
+void CodeWriter::writeLabel(const Command& command)
+{
+    write("(" + command.arg1 + ")");
+};
+
+void CodeWriter::writeGoto(const Command& command)
+{
+
+    write("@" + command.arg1);
+    write("0;JEQ");
+};
+
+void CodeWriter::writeIf(const Command& command)
+{
+    pop("D");
+    write("@" + command.arg1);
+    write("D;JNE");
+};
+
 void CodeWriter::pop(const std::string& dest)
 {
     decrementPointer("SP");
@@ -204,6 +223,8 @@ void CodeWriter::write(const std::string& arg)
 
 void CodeWriter::writeBootstrap()
 {
+    loadValue("256", "D");
+    saveValueTo("SP");
     write("@START");
     write("0;JEQ");
     equalityFn("(EQ)", "D;JEQ");

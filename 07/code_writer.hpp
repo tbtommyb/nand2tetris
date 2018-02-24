@@ -10,6 +10,9 @@ public:
     CodeWriter(std::ostream& output, const std::string& filename);
     void writePushPop(const Command& command);
     void writeArithmetic(const Command& command);
+    void writeLabel(const Command& command);
+    void writeGoto(const Command& command);
+    void writeIf(const Command& command);
 private:
     void pop(const std::string& dest);
     void writeConstant(int value);
