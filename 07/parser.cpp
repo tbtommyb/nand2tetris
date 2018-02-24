@@ -21,6 +21,12 @@ CommandMap commands = {
                        { "not", CommandType::C_ARITHMETIC },
                        { "push", CommandType::C_PUSH },
                        { "pop", CommandType::C_POP },
+                       { "label", CommandType::C_LABEL },
+                       { "goto", CommandType::C_GOTO },
+                       { "if-goto", CommandType::C_IF },
+                       { "function", CommandType::C_FUNCTION },
+                       { "return", CommandType::C_RETURN },
+                       { "call", CommandType::C_CALL }
 };
 
 Parser::Parser(std::istream& input) : source(input) { };
@@ -54,12 +60,20 @@ Command Parser::parse()
 
     switch (commandType) {
     case CommandType::C_ARITHMETIC:
+    case CommandType::C_RETURN:
         command.arg1 = elems[0];
         break;
     case CommandType::C_PUSH:
     case CommandType::C_POP:
+    case CommandType::C_CALL:
+    case CommandType::C_FUNCTION:
         command.arg1 = elems[1];
         command.arg2 = std::stoi(elems[2]);
+        break;
+    case CommandType::C_LABEL:
+    case CommandType::C_GOTO:
+    case CommandType::C_IF:
+        command.arg1 = elems[1];
         break;
     }
 
