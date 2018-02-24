@@ -13,6 +13,8 @@ public:
     void writeLabel(const Command& command);
     void writeGoto(const Command& command);
     void writeIf(const Command& command);
+    void writeFunction(const Command& command);
+    void writeReturn(const Command& command);
 private:
     void pop(const std::string& dest);
     void writeConstant(int value);
@@ -31,7 +33,7 @@ private:
     void writeBootstrap();
     void equalityFn(const std::string& label, const std::string& comparison);
     std::ostream& out;
-    int labelIndex;
+    int labelIndex, frameIndex;
     std::string filename;
 };
 

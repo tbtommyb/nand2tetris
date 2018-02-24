@@ -50,6 +50,12 @@ int main(int argc, char* argv[])
         case CommandType::C_IF:
             writer.writeIf(command);
             break;
+        case CommandType::C_FUNCTION:
+            writer.writeFunction(command);
+            break;
+        case CommandType::C_RETURN:
+            writer.writeReturn(command);
+            break;
         }
     }
 

@@ -34,7 +34,7 @@ CommandMap comparisons = {
 };
 
 CodeWriter::CodeWriter(std::ostream& output, const std::string& filename)
-    : out(output), labelIndex(0), filename(filename)
+    : out(output), labelIndex(0), frameIndex(0), filename(filename)
 {
     writeBootstrap();
 };
@@ -108,6 +108,108 @@ void CodeWriter::writeIf(const Command& command)
     pop("D");
     write("@" + command.arg1);
     write("D;JNE");
+};
+
+void CodeWriter::writeFunction(const Command& command)
+{
+    write("(" + command.arg1 + ")");
+    for (std::size_t i = 0; i < command.arg2; i++) {
+        writeToPointer("SP", "0");
+        incrementPointer("SP");
+    }
+};
+
+void CodeWriter::writeReturn(const Command& command)
+{
+    auto frame = filename + ".frame." + std::to_string(frameIndex++);
+    write("@LCL");
+    write("D=M");
+    write("@"+frame);
+    write("M=D");
+
+    write("@5");
+    write("D=A");
+    write("@"+frame);
+    write("A=M-D");
+    write("D=M");
+    write("@RET."+frame);
+    write("M=D");
+
+    pop("D");
+    writeToPointer("ARG", "D");
+
+    write("@ARG");
+    write("A=M");
+    write("D=A");
+    write("@SP");
+    write("M=D+1");
+    // write("@SP");
+    // write("AM=M-1");
+    // write("D=M");
+    // write("@ARG");
+    // write("A=M");
+    // write("M=D");
+    // loadValue("ARG", "D");
+    // write("@SP");
+    // write("M=D+1");
+
+    loadValue("1", "D");
+    write("@"+frame); // THAT = *(FRAME-1)
+    write("A=M-D");
+    write("D=M");
+    write("@THAT");
+    write("M=D");
+
+    loadValue("2", "D");
+    write("@"+frame); // THAT = *(FRAME-1)
+    write("A=M-D");
+    write("D=M");
+    write("@THIS");
+    write("M=D");
+
+    loadValue("3", "D");
+    write("@"+frame); // THAT = *(FRAME-1)
+    write("A=M-D");
+    write("D=M");
+    write("@ARG");
+    write("M=D");
+
+    loadValue("4", "D");
+    write("@"+frame); // THAT = *(FRAME-1)
+    write("A=M-D");
+    write("D=M");
+    write("@LCL");
+    write("M=D");
+
+
+
+    // loadValue("1", "D");
+    // loadFromPointer(frame, "A");
+    // write("A=A-D");
+    // write("D=M");
+    // writeToAddress("THAT", 0);
+
+    // loadValue("2", "D");
+    // loadFromPointer(frame, "A");
+    // write("A=A-D");
+    // write("D=M");
+    // writeToAddress("THIS", 0);
+
+    // loadValue("3", "D");
+    // loadFromPointer(frame, "A");
+    // write("A=A-D");
+    // write("D=M");
+    // writeToAddress("ARG", 0);
+
+    // loadValue("4", "D");
+    // loadFromPointer(frame, "A");
+    // write("A=A-D");
+    // write("D=M");
+    // writeToAddress("LCL", 0);
+
+    write("@RET." + frame);
+    write("A=M");
+    write("0;JEQ");
 };
 
 void CodeWriter::pop(const std::string& dest)
@@ -223,8 +325,8 @@ void CodeWriter::write(const std::string& arg)
 
 void CodeWriter::writeBootstrap()
 {
-    loadValue("256", "D");
-    saveValueTo("SP");
+    // loadValue("256", "D");
+    // saveValueTo("SP");
     write("@START");
     write("0;JEQ");
     equalityFn("(EQ)", "D;JEQ");
