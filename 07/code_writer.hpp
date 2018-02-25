@@ -7,12 +7,14 @@
 
 class CodeWriter {
 public:
-    CodeWriter(std::ostream& output, const std::string& filename);
+    CodeWriter(std::ostream& output);
+    void setCurrentFile(const std::string& filename);
     void writePushPop(const Command& command);
     void writeArithmetic(const Command& command);
     void writeLabel(const Command& command);
     void writeGoto(const Command& command);
     void writeIf(const Command& command);
+    void writeCall(const Command& command);
     void writeFunction(const Command& command);
     void writeReturn(const Command& command);
 private:
@@ -35,7 +37,7 @@ private:
     void equalityFn(const std::string& label, const std::string& comparison);
     std::ostream& out;
     int labelIndex, frameIndex;
-    std::string filename;
+    std::string currentFilename, currentFunction;
 };
 
 #endif

@@ -33,10 +33,17 @@ CommandMap comparisons = {
     { "gt", "GT" }
 };
 
-CodeWriter::CodeWriter(std::ostream& output, const std::string& filename)
-    : out(output), labelIndex(0), frameIndex(0), filename(filename)
+CodeWriter::CodeWriter(std::ostream& output)
+    : out(output), labelIndex(0), frameIndex(0), currentFilename(""),
+      currentFunction("")
 {
     writeBootstrap();
+};
+
+void CodeWriter::setCurrentFile(const std::string& filename)
+{
+    this->currentFilename = filename;
+    labelIndex = 0;
 };
 
 void CodeWriter::writePushPop(const Command& command)
@@ -48,7 +55,7 @@ void CodeWriter::writePushPop(const Command& command)
         if (cmd == "constant") {
             writeConstant(command.arg2);
         } else if (cmd == "static") {
-            writeFromAddress(filename + ".", command.arg2);
+            writeFromAddress(currentFilename + ".", command.arg2);
         } else if (cmd == "temp" || cmd == "pointer") {
             writeFromAddress(addresses.find(cmd)->second, command.arg2);
         } else if (cmd == "argument" || cmd == "local" || cmd == "this" || cmd == "that") {
@@ -61,7 +68,7 @@ void CodeWriter::writePushPop(const Command& command)
         pop("A");
 
         if (cmd == "static") {
-            writeToAddress(filename + ".", command.arg2);
+            writeToAddress(currentFilename + ".", command.arg2);
         } else if (cmd == "temp" || cmd == "pointer") {
             writeToAddress(addresses.find(cmd)->second, command.arg2);
         } else if (cmd == "argument" || cmd == "local" || cmd == "this" || cmd == "that") {
@@ -93,26 +100,76 @@ void CodeWriter::writeArithmetic(const Command& command)
 
 void CodeWriter::writeLabel(const Command& command)
 {
-    write("(" + command.arg1 + ")");
+    write("(" + currentFunction + "$" + command.arg1 + ")");
 };
 
 void CodeWriter::writeGoto(const Command& command)
 {
 
-    write("@" + command.arg1);
+    write("@" + currentFunction + "$" + command.arg1);
     write("0;JEQ");
 };
 
 void CodeWriter::writeIf(const Command& command)
 {
     pop("D");
-    write("@" + command.arg1);
+    write("@" + currentFunction + "$" + command.arg1);
     write("D;JNE");
+};
+
+void CodeWriter::writeCall(const Command& command)
+{
+    auto returnAddr = currentFilename + ".RET." + command.arg1;
+
+    // push return-address
+    loadFromAddress(returnAddr, "D");
+    writeToPointer("SP", "D");
+    incrementPointer("SP");
+
+    // push LCL
+    loadFromAddress("LCL", "D");
+    writeToPointer("SP", "D");
+    incrementPointer("SP");
+
+    // push ARG
+    loadFromAddress("ARG", "D");
+    writeToPointer("SP", "D");
+    incrementPointer("SP");
+
+    // push THIS
+    loadFromAddress("THIS", "D");
+    writeToPointer("SP", "D");
+    incrementPointer("SP");
+
+    // push THAT
+    loadFromAddress("THAT", "D");
+    writeToPointer("SP", "D");
+    incrementPointer("SP");
+
+    // ARG = SP - n - 5
+    loadValue(std::to_string(command.arg2), "D");
+    loadValue("SP", "A");
+    write("D=M-D");
+    loadValue("5", "A");
+    write("D=D-A");
+    writeToPointer("ARG", "D");
+
+    // LCL = SP
+    loadFromAddress("SP", "D");
+    writeToPointer("LCL", "D");
+
+    // goto f
+    write("@" + command.arg1);
+    write("0;JEQ");
+
+    // (return-address)
+    write("(" + returnAddr + ")");
 };
 
 void CodeWriter::writeFunction(const Command& command)
 {
-    write("(" + command.arg1 + ")");
+    currentFunction = command.arg1;
+    write("(" + currentFunction + ")");
     for (std::size_t i = 0; i < command.arg2; i++) {
         writeToPointer("SP", "0");
         incrementPointer("SP");
@@ -122,7 +179,7 @@ void CodeWriter::writeFunction(const Command& command)
 void CodeWriter::writeReturn(const Command& command)
 {
     // FRAME = LCL
-    auto frame = filename + ".frame." + std::to_string(frameIndex++);
+    auto frame = currentFilename + ".frame." + std::to_string(frameIndex++);
     auto returnLabel = "RET." + frame;
     loadFromAddress("LCL", "D");
     writeToPointer(frame, "D");
@@ -174,6 +231,10 @@ void CodeWriter::writeReturn(const Command& command)
     loadFromAddress(returnLabel, "A");
     write("0;JEQ");
 };
+
+// TODO: rationalise helper methods:
+// loadValue, loadVariable, loadPointer
+// writeValue, writeVariable, writePointer
 
 void CodeWriter::pop(const std::string& dest)
 {
@@ -294,8 +355,11 @@ void CodeWriter::write(const std::string& arg)
 
 void CodeWriter::writeBootstrap()
 {
+    Command initCommand{ .type = C_CALL, .arg1 = "Sys.init" };
+
     // loadValue("256", "D");
     // saveValueTo("SP");
+    // writeCall(initCommand);
     write("@START");
     write("0;JEQ");
     equalityFn("(EQ)", "D;JEQ");

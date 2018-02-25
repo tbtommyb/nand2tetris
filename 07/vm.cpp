@@ -7,13 +7,12 @@
 
 namespace fs = boost::filesystem;
 
-void process(fs::path input, fs::path output)
+void process(CodeWriter& writer, fs::path input)
 {
     std::ifstream inputFile{input.string()};
-    std::ofstream outputFile{output.string(), std::ios_base::app};
+    writer.setCurrentFile(input.stem().string());
 
     Parser parser{inputFile};
-    CodeWriter writer{outputFile, input.stem().string()};
 
     while (parser.hasMoreCommands()) {
         parser.advance();
@@ -54,18 +53,19 @@ int main(int argc, char* argv[])
     }
 
     fs::path input{argv[1]};
+    std::ofstream outputFile{input.stem().string() + ".asm"};
+    CodeWriter writer{outputFile};
 
     if (fs::is_directory(input)) {
         for (const auto& entry : fs::directory_iterator(input)) {
             const auto& file{entry.path()};
 
             if (file.extension() == ".vm") {
-                std::cout << "processing: " << file.filename().string() << std::endl;
-                process(file, fs::path{input.parent_path().string() + ".asm"});
+                process(writer, file);
             }
         }
     } else {
-        process(input, fs::path{input.stem().string() + ".asm"});
+        process(writer, input);
     }
 
     return 0;
