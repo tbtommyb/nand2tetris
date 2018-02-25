@@ -121,94 +121,57 @@ void CodeWriter::writeFunction(const Command& command)
 
 void CodeWriter::writeReturn(const Command& command)
 {
+    // FRAME = LCL
     auto frame = filename + ".frame." + std::to_string(frameIndex++);
-    write("@LCL");
-    write("D=M");
-    write("@"+frame);
-    write("M=D");
+    auto returnLabel = "RET." + frame;
+    loadFromAddress("LCL", "D");
+    writeToPointer(frame, "D");
 
-    write("@5");
-    write("D=A");
-    write("@"+frame);
+    // RET = *(FRAME-5)
+    loadValue("5", "D");
+    loadValue(frame, "A");
     write("A=M-D");
     write("D=M");
-    write("@RET."+frame);
-    write("M=D");
+    saveValueTo(returnLabel);
 
+    // *ARG = pop()
     pop("D");
     writeToPointer("ARG", "D");
 
-    write("@ARG");
-    write("A=M");
-    write("D=A");
-    write("@SP");
+    // SP = ARG + 1
+    loadFromAddress("ARG", "D");
+    loadValue("SP", "A");
     write("M=D+1");
-    // write("@SP");
-    // write("AM=M-1");
-    // write("D=M");
-    // write("@ARG");
-    // write("A=M");
-    // write("M=D");
-    // loadValue("ARG", "D");
-    // write("@SP");
-    // write("M=D+1");
 
+    // THAT = *(FRAME-1)
     loadValue("1", "D");
-    write("@"+frame); // THAT = *(FRAME-1)
-    write("A=M-D");
+    loadFromAddress(frame, "A");
+    write("A=A-D");
     write("D=M");
-    write("@THAT");
-    write("M=D");
+    saveValueTo("THAT");
 
+    // THIS = *(FRAME-1)
     loadValue("2", "D");
-    write("@"+frame); // THAT = *(FRAME-1)
-    write("A=M-D");
+    loadFromAddress(frame, "A");
+    write("A=A-D");
     write("D=M");
-    write("@THIS");
-    write("M=D");
+    saveValueTo("THIS");
 
+    // ARG = *(FRAME-1)
     loadValue("3", "D");
-    write("@"+frame); // THAT = *(FRAME-1)
-    write("A=M-D");
+    loadFromAddress(frame, "A");
+    write("A=A-D");
     write("D=M");
-    write("@ARG");
-    write("M=D");
+    saveValueTo("ARG");
 
+    // LCL = *(FRAME-1)
     loadValue("4", "D");
-    write("@"+frame); // THAT = *(FRAME-1)
-    write("A=M-D");
+    loadFromAddress(frame, "A");
+    write("A=A-D");
     write("D=M");
-    write("@LCL");
-    write("M=D");
+    saveValueTo("LCL");
 
-
-
-    // loadValue("1", "D");
-    // loadFromPointer(frame, "A");
-    // write("A=A-D");
-    // write("D=M");
-    // writeToAddress("THAT", 0);
-
-    // loadValue("2", "D");
-    // loadFromPointer(frame, "A");
-    // write("A=A-D");
-    // write("D=M");
-    // writeToAddress("THIS", 0);
-
-    // loadValue("3", "D");
-    // loadFromPointer(frame, "A");
-    // write("A=A-D");
-    // write("D=M");
-    // writeToAddress("ARG", 0);
-
-    // loadValue("4", "D");
-    // loadFromPointer(frame, "A");
-    // write("A=A-D");
-    // write("D=M");
-    // writeToAddress("LCL", 0);
-
-    write("@RET." + frame);
-    write("A=M");
+    loadFromAddress(returnLabel, "A");
     write("0;JEQ");
 };
 
@@ -290,6 +253,12 @@ void CodeWriter::loadFromPointer(const std::string& address, const std::string& 
     if (dest == "D") {
         write("D=M");
     }
+};
+
+void CodeWriter::loadFromAddress(const std::string& address, const std::string& dest)
+{
+    loadValue(address, "A");
+    write(dest + "=M");
 };
 
 void CodeWriter::loadValue(const std::string& value, const std::string& dest)

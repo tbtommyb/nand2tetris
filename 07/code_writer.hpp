@@ -26,6 +26,7 @@ private:
     void decrementPointer(const std::string& address);
     void writeToPointer(const std::string& address, const std::string& val);
     void loadFromPointer(const std::string& address, const std::string& dest);
+    void loadFromAddress(const std::string& address, const std::string& dest);
     void loadValue(const std::string& value, const std::string& dest);
     void saveValueTo(const std::string& address);
     void compare(const std::string& comparison);
