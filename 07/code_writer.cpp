@@ -182,28 +182,18 @@ void CodeWriter::writeFunction(const Command& command)
 
 void CodeWriter::writeReturn(const Command& command)
 {
-    write("@LCL"); // FRAME = LCL
-    write("D=M");
-    write("@R13"); // R13 -> FRAME
-    write("M=D");
-
-    write("@5"); // RET = *(FRAME-5)
-    write("A=D-A");
-    write("D=M");
-    write("@R14"); // R14 -> RET
-    write("M=D");
     // // FRAME = LCL
-    // auto frame = currentFunction + ".frame." + std::to_string(frameIndex++);
-    // auto returnLabel = frame + ".RET";
-    // loadFromAddress("LCL", "D");
-    // saveValueTo(frame);
+    auto frame = currentFunction + ".frame." + std::to_string(frameIndex++);
+    auto returnLabel = frame + ".RET";
+    loadFromAddress("LCL", "D");
+    saveValueTo(frame);
 
-    // // RET = *(FRAME-5)
-    // loadValue("5", "D");
-    // loadValue(frame, "A");
-    // write("A=M-D");
-    // write("D=M");
-    // saveValueTo(returnLabel);
+    // RET = *(FRAME-5)
+    loadValue("5", "D");
+    loadValue(frame, "A");
+    write("A=M-D");
+    write("D=M");
+    saveValueTo(returnLabel);
 
     // *ARG = pop()
     pop("D");
@@ -216,37 +206,34 @@ void CodeWriter::writeReturn(const Command& command)
 
     // THAT = *(FRAME-1)
     loadValue("1", "D");
-    loadValue("R13", "A");
+    loadValue(frame, "A");
     write("A=M-D");
     write("D=M");
     saveValueTo("THAT");
 
     // THIS = *(FRAME-2)
     loadValue("2", "D");
-    loadValue("R13", "A");
+    loadValue(frame, "A");
     write("A=M-D");
     write("D=M");
     saveValueTo("THIS");
 
     // ARG = *(FRAME-3)
     loadValue("3", "D");
-    loadValue("R13", "A");
+    loadValue(frame, "A");
     write("A=M-D");
     write("D=M");
     saveValueTo("ARG");
 
     // LCL = *(FRAME-4)
     loadValue("4", "D");
-    loadValue("R13", "A");
+    loadValue(frame, "A");
     write("A=M-D");
     write("D=M");
     saveValueTo("LCL");
 
-    write("@R14"); // goto RET
-    write("A=M");
-    write("0;JMP");
-    // loadFromAddress(returnLabel, "A");
-    // write("0;JEQ");
+    loadFromAddress(returnLabel, "A");
+    write("0;JEQ");
 };
 
 // TODO: rationalise helper methods:
