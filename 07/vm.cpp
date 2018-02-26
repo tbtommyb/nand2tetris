@@ -35,6 +35,9 @@ void process(CodeWriter& writer, fs::path input)
         case CommandType::C_IF:
             writer.writeIf(command);
             break;
+        case CommandType::C_CALL:
+            writer.writeCall(command);
+            break;
         case CommandType::C_FUNCTION:
             writer.writeFunction(command);
             break;

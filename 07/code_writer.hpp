@@ -1,7 +1,7 @@
 #ifndef __code_writer__
 #define __code_writer__
 
-#include <istream>
+#include <iostream>
 #include <string>
 #include "parser.hpp"
 
@@ -36,7 +36,7 @@ private:
     void writeBootstrap();
     void equalityFn(const std::string& label, const std::string& comparison);
     std::ostream& out;
-    int labelIndex, frameIndex;
+    int labelIndex, frameIndex, callCount;
     std::string currentFilename, currentFunction;
 };
 

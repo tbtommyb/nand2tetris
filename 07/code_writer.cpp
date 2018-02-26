@@ -34,15 +34,16 @@ CommandMap comparisons = {
 };
 
 CodeWriter::CodeWriter(std::ostream& output)
-    : out(output), labelIndex(0), frameIndex(0), currentFilename(""),
-      currentFunction("")
+    : out(output), labelIndex(0), frameIndex(0), callCount(0),
+      currentFilename(""), currentFunction("")
 {
     writeBootstrap();
 };
 
 void CodeWriter::setCurrentFile(const std::string& filename)
 {
-    this->currentFilename = filename;
+    currentFilename = filename;
+    callCount = 0;
     labelIndex = 0;
 };
 
@@ -76,6 +77,9 @@ void CodeWriter::writePushPop(const Command& command)
         }
 
         break;
+    default:
+        std::cerr << "Invalid command for writePushPop";
+        exit(1);
     }
 };
 
@@ -119,10 +123,10 @@ void CodeWriter::writeIf(const Command& command)
 
 void CodeWriter::writeCall(const Command& command)
 {
-    auto returnAddr = currentFilename + ".RET." + command.arg1;
+    auto returnAddr = currentFilename + "." + command.arg1 + ".RET." + std::to_string(callCount++);
 
     // push return-address
-    loadFromAddress(returnAddr, "D");
+    loadValue(returnAddr, "D");
     writeToPointer("SP", "D");
     incrementPointer("SP");
 
@@ -148,15 +152,15 @@ void CodeWriter::writeCall(const Command& command)
 
     // ARG = SP - n - 5
     loadValue(std::to_string(command.arg2), "D");
+    loadValue("5", "A");
+    write("D=D+A");
     loadValue("SP", "A");
     write("D=M-D");
-    loadValue("5", "A");
-    write("D=D-A");
-    writeToPointer("ARG", "D");
+    saveValueTo("ARG");
 
     // LCL = SP
     loadFromAddress("SP", "D");
-    writeToPointer("LCL", "D");
+    saveValueTo("LCL");
 
     // goto f
     write("@" + command.arg1);
@@ -178,18 +182,28 @@ void CodeWriter::writeFunction(const Command& command)
 
 void CodeWriter::writeReturn(const Command& command)
 {
-    // FRAME = LCL
-    auto frame = currentFilename + ".frame." + std::to_string(frameIndex++);
-    auto returnLabel = "RET." + frame;
-    loadFromAddress("LCL", "D");
-    writeToPointer(frame, "D");
-
-    // RET = *(FRAME-5)
-    loadValue("5", "D");
-    loadValue(frame, "A");
-    write("A=M-D");
+    write("@LCL"); // FRAME = LCL
     write("D=M");
-    saveValueTo(returnLabel);
+    write("@R13"); // R13 -> FRAME
+    write("M=D");
+
+    write("@5"); // RET = *(FRAME-5)
+    write("A=D-A");
+    write("D=M");
+    write("@R14"); // R14 -> RET
+    write("M=D");
+    // // FRAME = LCL
+    // auto frame = currentFunction + ".frame." + std::to_string(frameIndex++);
+    // auto returnLabel = frame + ".RET";
+    // loadFromAddress("LCL", "D");
+    // saveValueTo(frame);
+
+    // // RET = *(FRAME-5)
+    // loadValue("5", "D");
+    // loadValue(frame, "A");
+    // write("A=M-D");
+    // write("D=M");
+    // saveValueTo(returnLabel);
 
     // *ARG = pop()
     pop("D");
@@ -202,34 +216,37 @@ void CodeWriter::writeReturn(const Command& command)
 
     // THAT = *(FRAME-1)
     loadValue("1", "D");
-    loadFromAddress(frame, "A");
-    write("A=A-D");
+    loadValue("R13", "A");
+    write("A=M-D");
     write("D=M");
     saveValueTo("THAT");
 
-    // THIS = *(FRAME-1)
+    // THIS = *(FRAME-2)
     loadValue("2", "D");
-    loadFromAddress(frame, "A");
-    write("A=A-D");
+    loadValue("R13", "A");
+    write("A=M-D");
     write("D=M");
     saveValueTo("THIS");
 
-    // ARG = *(FRAME-1)
+    // ARG = *(FRAME-3)
     loadValue("3", "D");
-    loadFromAddress(frame, "A");
-    write("A=A-D");
+    loadValue("R13", "A");
+    write("A=M-D");
     write("D=M");
     saveValueTo("ARG");
 
-    // LCL = *(FRAME-1)
+    // LCL = *(FRAME-4)
     loadValue("4", "D");
-    loadFromAddress(frame, "A");
-    write("A=A-D");
+    loadValue("R13", "A");
+    write("A=M-D");
     write("D=M");
     saveValueTo("LCL");
 
-    loadFromAddress(returnLabel, "A");
-    write("0;JEQ");
+    write("@R14"); // goto RET
+    write("A=M");
+    write("0;JMP");
+    // loadFromAddress(returnLabel, "A");
+    // write("0;JEQ");
 };
 
 // TODO: rationalise helper methods:
@@ -355,11 +372,8 @@ void CodeWriter::write(const std::string& arg)
 
 void CodeWriter::writeBootstrap()
 {
-    Command initCommand{ .type = C_CALL, .arg1 = "Sys.init" };
+    Command initCommand{ .type = C_CALL, .arg1 = "Sys.init", .arg2 = 0 };
 
-    // loadValue("256", "D");
-    // saveValueTo("SP");
-    // writeCall(initCommand);
     write("@START");
     write("0;JEQ");
     equalityFn("(EQ)", "D;JEQ");
@@ -369,6 +383,9 @@ void CodeWriter::writeBootstrap()
     loadFromPointer("R14", "A");
     write("0;JEQ");
     write("(START)");
+    loadValue("256", "D");
+    saveValueTo("SP");
+    writeCall(initCommand);
 };
 
 void CodeWriter::equalityFn(const std::string& label, const std::string& comparison)
