@@ -56,7 +56,7 @@ void CodeWriter::writePushPop(const Command& command)
         if (cmd == "constant") {
             writeConstant(command.arg2);
         } else if (cmd == "static") {
-            writeFromAddress(currentFilename + ".", command.arg2);
+            writeFromAddress(currentFilename + "." + std::to_string(command.arg2), 0);
         } else if (cmd == "temp" || cmd == "pointer") {
             writeFromAddress(addresses.find(cmd)->second, command.arg2);
         } else if (cmd == "argument" || cmd == "local" || cmd == "this" || cmd == "that") {
@@ -69,7 +69,7 @@ void CodeWriter::writePushPop(const Command& command)
         pop("A");
 
         if (cmd == "static") {
-            writeToAddress(currentFilename + ".", command.arg2);
+            writeToAddress(currentFilename + "." + std::to_string(command.arg2), 0);
         } else if (cmd == "temp" || cmd == "pointer") {
             writeToAddress(addresses.find(cmd)->second, command.arg2);
         } else if (cmd == "argument" || cmd == "local" || cmd == "this" || cmd == "that") {
