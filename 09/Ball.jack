@@ -1,0 +1,25 @@
+class Ball {
+    field int size;
+    field int x, y;
+
+    constructor Ball new(int Asize, int Ax, int Ay) {
+        let size = Asize;
+        let x = Ax;
+        let y = Ay;
+
+        do render();
+
+        return this;
+    }
+
+    method void destroy() {
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method void render() {
+        do Screen.setColor(true);
+        do Screen.drawRectangle(x, y, x + size, y + size);
+        return;
+    }
+}
