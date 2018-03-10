@@ -1,11 +1,10 @@
 class Ball {
     field int size;
-    field int x, y;
+    field Point topLeft;
 
     constructor Ball new(int Asize, int Ax, int Ay) {
         let size = Asize;
-        let x = Ax;
-        let y = Ay;
+        let topLeft = Point.new(Ax, Ay);
 
         do render();
 
@@ -19,7 +18,7 @@ class Ball {
 
     method void render() {
         do Screen.setColor(true);
-        do Screen.drawRectangle(x, y, x + size, y + size);
+        do Screen.drawRectangle(topLeft.x(), topLeft.y(), topLeft.x() + size, topLeft.y() + size);
         return;
     }
 }
