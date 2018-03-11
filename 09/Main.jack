@@ -1,21 +1,35 @@
 class Main {
+    static int SCREEN_LEFT, SCREEN_RIGHT, SCREEN_TOP, SCREEN_BOTTOM;
+
     function void main() {
         var Ball ball;
         var Paddle paddle;
         var char key;
         var boolean exit;
 
+        let SCREEN_LEFT = 2;
+        let SCREEN_RIGHT = 510;
+        let SCREEN_TOP = 2;
+        let SCREEN_BOTTOM = 254;
+
         let ball = Ball.new(5, 250, 100);
         let paddle = Paddle.new(240, 200, 40, 5);
         let exit = false;
 
         while (~exit) {
-            while (key = 0) {
-                let key = Keyboard.keyPressed();
+            if ((ball.left() < SCREEN_LEFT) | (ball.right() > SCREEN_RIGHT)) {
+                do ball.bounceVertical();
             }
-            while (~(key = 0)) {
-                let key = Keyboard.keyPressed();
+            if ((ball.top() < SCREEN_LEFT) | (ball.bottom() > SCREEN_BOTTOM)) {
+                do ball.bounceHorizontal();
+            }
+            if ((ball.right() > paddle.left()) & (ball.left() < paddle.right()) & (ball.bottom() < paddle.top())) {
+                do ball.bounceVertical();
+            }
 
+            do ball.move();
+            let key = Keyboard.keyPressed();
+            if (~(key = 0)) {
                 if (key = 130) { // left arrow
                     do paddle.moveLeft();
                 }
@@ -27,6 +41,9 @@ class Main {
                 }
             }
         }
+
+        do ball.destroy();
+        do paddle.destroy();
 
         return;
     }

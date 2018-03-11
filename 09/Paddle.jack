@@ -1,10 +1,11 @@
 class Paddle {
-    field Point topLeft;
-    field Point bottomRight;
+    field int x, y, length, depth;
 
-    constructor Paddle new(int Ax, int Ay, int length, int height) {
-        let topLeft = Point.new(Ax, Ay);
-        let bottomRight = Point.new(Ax + length, Ay + height);
+    constructor Paddle new(int Ax, int Ay, int Alength, int Adepth) {
+        let x = Ax;
+        let y = Ay;
+        let length = Alength;
+        let depth = Adepth;
 
         do render(true);
 
@@ -18,25 +19,27 @@ class Paddle {
 
     method void render(bool color) {
         do Screen.setColor(color);
-        do Screen.drawRectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
+        do Screen.drawRectangle(x, y, x + length, y + depth);
         return;
     }
 
+    method int left() {
+        return x;
+    }
+
+    method int right() {
+        return x + length;
+    }
+
+    method int top() {
+        return y;
+    }
+
     method void moveLeft() {
-        var int oldTLX, oldTLY, oldBRX, oldBRY;
-        if (topLeft.x() > 1) {
+        if (x > 1) {
             do render(false);
 
-            let oldTLX = topLeft.x();
-            let oldTLY = topLeft.y();
-            let oldBRX = bottomRight.x();
-            let oldBRY = bottomRight.y();
-
-            do topLeft.destroy();
-            do bottomRight.destroy();
-
-            let topLeft = Point.new(oldTLX - 1, oldTLY);
-            let bottomRight = Point.new(oldBRX - 1, oldBRY);
+            let x = x - 1;
 
             do render(true);
         }
@@ -45,11 +48,10 @@ class Paddle {
     }
 
     method void moveRight() {
-        if (bottomRight.x() < 510) {
+        if (x + length < 511) {
             do render(false);
 
-            let topLeft = Point.new(topLeft.x() + 2, topLeft.y());
-            let bottomRight = Point.new(bottomRight.x() + 2, bottomRight.y());
+            let x = x + 1;
 
             do render(true);
         }

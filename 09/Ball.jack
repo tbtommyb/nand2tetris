@@ -1,14 +1,35 @@
 class Ball {
-    field int size;
-    field Point topLeft;
+    field int size, x, y;
+    field int xDirection, yDirection;
 
     constructor Ball new(int Asize, int Ax, int Ay) {
         let size = Asize;
-        let topLeft = Point.new(Ax, Ay);
+        let x = Ax;
+        let y = Ay;
 
-        do render();
+        // init down and to the right
+        let xDirection = 1;
+        let yDirection = 1;
+
+        do render(true);
 
         return this;
+    }
+
+    method int left() {
+        return x;
+    }
+
+    method int right() {
+        return x + size;
+    }
+
+    method int top() {
+        return y;
+    }
+
+    method int bottom() {
+        return y + size;
     }
 
     method void destroy() {
@@ -16,9 +37,29 @@ class Ball {
         return;
     }
 
-    method void render() {
-        do Screen.setColor(true);
-        do Screen.drawRectangle(topLeft.x(), topLeft.y(), topLeft.x() + size, topLeft.y() + size);
+    method void render(boolean color) {
+        do Screen.setColor(color);
+        do Screen.drawRectangle(x, y, x + size, y + size);
+        return;
+    }
+
+    method void bounceHorizontal() {
+        let yDirection = -yDirection;
+        return;
+    }
+
+    method void bounceVertical() {
+        let xDirection = -xDirection;
+        return;
+    }
+
+    method void move() {
+        do render(false);
+        let x = x + xDirection;
+        let y = y + yDirection;
+
+        do render(true);
+
         return;
     }
 }
