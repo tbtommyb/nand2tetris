@@ -77,6 +77,7 @@ public:
     ~JackTokenizer() = default;
     std::shared_ptr<Token> nextToken(const std::string&);
 private:
+    void advance();
     bool isKeyword(const std::string&);
     bool isSymbol(char16_t);
     bool isInteger(const std::string&);

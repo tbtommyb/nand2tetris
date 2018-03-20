@@ -49,6 +49,13 @@ std::unordered_set<char16_t> validSymbols = {
 
 JackTokenizer::JackTokenizer(std::istream& in) : input(in) { };
 
+void JackTokenizer::advance()
+{
+    std::string currentLine;
+    std::getline(input, currentLine);
+    auto token = nextToken(currentLine);
+};
+
 std::shared_ptr<Token> JackTokenizer::nextToken(const std::string& input)
 {
     if (isKeyword(input)) {
