@@ -25,6 +25,7 @@ int main(int argc, char* argv[])
     for (const auto& filePath : filesToProcess) {
         std::ifstream file{filePath.string()};
         JackTokenizer tokenizer{file};
+        auto tokens = tokenizer.getTokenList();
         std::ofstream outputFile{filePath.stem().string() + ".xml"};
     }
 

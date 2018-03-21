@@ -49,11 +49,83 @@ std::unordered_set<char16_t> validSymbols = {
 
 JackTokenizer::JackTokenizer(std::istream& in) : input(in) { };
 
-void JackTokenizer::advance()
+bool JackTokenizer::isCommentLine(std::string::iterator& it)
 {
-    std::string currentLine;
-    std::getline(input, currentLine);
-    auto token = nextToken(currentLine);
+    if (*it != '/') {
+        return false;
+    }
+
+    if (*++it == '/') {
+        return true;
+    }
+
+    it--;
+    return false;
+};
+
+bool JackTokenizer::skipCommentBlock(std::string::iterator& it)
+{
+    if (*it != '/') {
+        return false;
+    }
+
+    if (*++it != '*') {
+        it--;
+        return false;
+    }
+
+    inCommentBlock = true;
+
+    while (inCommentBlock) {
+        if (*it++ == '*' && *it++ == '/') {
+            inCommentBlock = false;
+            it++;
+        }
+    }
+
+    return true;
+};
+
+bool JackTokenizer::isRemainingChar(std::string::iterator& it)
+{
+    while (isspace(*it)) {
+        it++;
+    }
+
+    if (isCommentLine(it)) {
+        return false;
+    }
+
+    skipCommentBlock(it);
+
+    if (it == currentLine.end()) {
+        return false;
+    }
+
+    return true;
+};
+
+TokenList JackTokenizer::getTokenList()
+{
+    TokenList tokenList{};
+    std::string currentEl;
+    while(std::getline(input, currentLine)) {
+        std::string::iterator it = currentLine.begin();
+        while(isRemainingChar(it)) {
+            std::string token{};
+            if (isSymbol(*it)) {
+                token.append(1, *it++);
+            } else {
+                while(it != currentLine.end() && !isspace(*it) && !isSymbol(*it)) {
+                    token.append(1, *it++);
+                }
+            }
+            std::cout << token << std::endl;
+            tokenList.push_back(nextToken(token));
+        }
+    }
+
+    return tokenList;
 };
 
 std::shared_ptr<Token> JackTokenizer::nextToken(const std::string& input)
@@ -110,6 +182,6 @@ bool JackTokenizer::isString(const std::string& input)
 
 bool JackTokenizer::isIdentifier(const std::string& input)
 {
-    const std::regex pattern{"^?!([[:digit:]])[a-zA-Z0-9\\_]+"};
+    const std::regex pattern{"^!([[:digit:]])[a-zA-Z0-9\_]+"};
     return std::regex_match(input, pattern);
 };
