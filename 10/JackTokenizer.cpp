@@ -47,6 +47,44 @@ std::unordered_set<char16_t> validSymbols = {
     '~',
 };
 
+std::string KeywordToken::toString()
+{
+    return "<keyword>" + val + "</keyword>";
+};
+
+std::string SymbolToken::toString()
+{
+    std::string symbol(1, val);
+    if (symbol[0] == '<') {
+        symbol = "&lt;";
+    }
+    else if (symbol[0] == '>') {
+        symbol = "&gt;";
+    }
+    else if (symbol[0] == '\"') {
+        symbol = "&quot;";
+    }
+    else if (symbol[0] == '&') {
+        symbol = "&amp;";
+    }
+    return "<symbol>" + symbol + "</symbol>";
+};
+
+std::string IntConstToken::toString()
+{
+    return "<integerConstant>" + std::to_string(val) + "</integerConstant>";
+};
+
+std::string StringToken::toString()
+{
+    return "<stringConstant>" + val.substr(1, val.size() - 2) + "</stringConstant>";
+};
+
+std::string IdentifierToken::toString()
+{
+    return "<identifier>" + val + "</identifier>";
+};
+
 JackTokenizer::JackTokenizer(std::istream& in) : input(in) { };
 
 bool JackTokenizer::isCommentLine(std::string::iterator& it)
@@ -120,7 +158,6 @@ TokenList JackTokenizer::getTokenList()
                     token.append(1, *it++);
                 }
             }
-            std::cout << token << std::endl;
             tokenList.push_back(nextToken(token));
         }
     }
@@ -131,8 +168,7 @@ TokenList JackTokenizer::getTokenList()
 std::shared_ptr<Token> JackTokenizer::nextToken(const std::string& input)
 {
     if (isKeyword(input)) {
-        auto token = validKeywords.find(input)->second;
-        return std::make_shared<KeywordToken>(token);
+        return std::make_shared<KeywordToken>(input);
     }
     if (isSymbol(input.c_str()[0])) {
         auto symbol = input.c_str()[0];
@@ -182,6 +218,6 @@ bool JackTokenizer::isString(const std::string& input)
 
 bool JackTokenizer::isIdentifier(const std::string& input)
 {
-    const std::regex pattern{"^!([[:digit:]])[a-zA-Z0-9\_]+"};
+    const std::regex pattern{R"(^[a-zA-Z_]+[a-zA-Z0-9_]*)"};
     return std::regex_match(input, pattern);
 };

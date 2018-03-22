@@ -37,18 +37,21 @@ class Token {
 public:
     Token() { };
     virtual ~Token() = default;
+    virtual std::string toString() { return "ILLEGAL TOKEN"; }
 };
 
 class KeywordToken : public Token {
 public:
-    KeywordToken(Keyword kw) : val(kw) { };
+    KeywordToken(std::string kw) : val(kw) { };
+    std::string toString() override;
 private:
-    Keyword val;
+    std::string val;
 };
 
 class SymbolToken : public Token {
 public:
     SymbolToken(char16_t symbol) : val(symbol) { };
+    std::string toString() override;
 private:
     char16_t val;
 };
@@ -56,6 +59,7 @@ private:
 class IntConstToken : public Token {
 public:
     IntConstToken(int16_t intVal) : val(intVal) { };
+    std::string toString() override;
 private:
     int16_t val;
 };
@@ -63,13 +67,15 @@ private:
 class StringToken : public Token {
 public:
     StringToken(const std::string& stringVal) : val(stringVal) { };
+    std::string toString() override;
 private:
     std::string val;
 };
 
 class IdentifierToken : public Token {
 public:
-    IdentifierToken(const std::string& identifier) : val(identifier) { };
+    IdentifierToken(const std::string& val) : val(val) { };
+    std::string toString() override;
 private:
     std::string val;
 };
