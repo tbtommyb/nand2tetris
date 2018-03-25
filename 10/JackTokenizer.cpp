@@ -47,45 +47,7 @@ std::unordered_set<char16_t> validSymbols = {
     '~',
 };
 
-std::string KeywordToken::toString()
-{
-    return "<keyword>" + val + "</keyword>";
-};
-
-std::string SymbolToken::toString()
-{
-    std::string symbol(1, val);
-    if (symbol[0] == '<') {
-        symbol = "&lt;";
-    }
-    else if (symbol[0] == '>') {
-        symbol = "&gt;";
-    }
-    else if (symbol[0] == '\"') {
-        symbol = "&quot;";
-    }
-    else if (symbol[0] == '&') {
-        symbol = "&amp;";
-    }
-    return "<symbol>" + symbol + "</symbol>";
-};
-
-std::string IntConstToken::toString()
-{
-    return "<integerConstant>" + std::to_string(val) + "</integerConstant>";
-};
-
-std::string StringToken::toString()
-{
-    return "<stringConstant>" + val.substr(1, val.size() - 2) + "</stringConstant>";
-};
-
-std::string IdentifierToken::toString()
-{
-    return "<identifier>" + val + "</identifier>";
-};
-
-JackTokenizer::JackTokenizer(std::istream& in) : input(in) { };
+JackTokenizer::JackTokenizer(std::istream& in) : input(in), lineNumber(0) { };
 
 bool JackTokenizer::isCommentLine(std::string::iterator& it)
 {
@@ -148,6 +110,7 @@ TokenList JackTokenizer::getTokenList()
     TokenList tokenList{};
     std::string currentEl;
     while(std::getline(input, currentLine)) {
+        lineNumber++;
         std::string::iterator it = currentLine.begin();
         while(isRemainingChar(it)) {
             std::string token{};
@@ -168,22 +131,22 @@ TokenList JackTokenizer::getTokenList()
 std::shared_ptr<Token> JackTokenizer::nextToken(const std::string& input)
 {
     if (isKeyword(input)) {
-        return std::make_shared<KeywordToken>(input);
+        return std::make_shared<KeywordToken>(input, lineNumber);
     }
     if (isSymbol(input.c_str()[0])) {
         auto symbol = input.c_str()[0];
-        return std::make_shared<SymbolToken>(symbol);
+        return std::make_shared<SymbolToken>(symbol, lineNumber);
     }
     if (isInteger(input)) {
-        return std::make_shared<IntConstToken>(std::stoi(input));
+        return std::make_shared<IntConstToken>(std::stoi(input), lineNumber);
     }
     if (isString(input)) {
-        return std::make_shared<StringToken>(input);
+        return std::make_shared<StringToken>(input, lineNumber);
     }
     if (isIdentifier(input)) {
-        return std::make_shared<IdentifierToken>(input);
+        return std::make_shared<IdentifierToken>(input, lineNumber);
     }
-    return std::make_shared<Token>();
+    return std::make_shared<Token>(lineNumber);
 };
 
 bool JackTokenizer::isKeyword(const std::string& input)

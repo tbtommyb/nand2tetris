@@ -2,6 +2,7 @@
 #include <fstream>
 #include "boost/filesystem.hpp"
 #include "JackTokenizer.hpp"
+#include "CompilationEngine.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -24,12 +25,13 @@ int main(int argc, char* argv[])
 
     for (const auto& filePath : filesToProcess) {
         std::ifstream file{filePath.string()};
+        std::ofstream outputFile{filePath.stem().string() + ".xml"};
+
         JackTokenizer tokenizer{file};
         auto tokens = tokenizer.getTokenList();
-        for(const auto& token : tokens) {
-            std::cout << token->toString() << std::endl;
-        }
-        std::ofstream outputFile{filePath.stem().string() + ".xml"};
+
+        CompilationEngine compiler{tokens, outputFile};
+        compiler.compile();
     }
 
     return 0;

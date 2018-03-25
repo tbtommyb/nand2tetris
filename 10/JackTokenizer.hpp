@@ -8,6 +8,7 @@
 #include <map>
 #include <unordered_set>
 #include <vector>
+#include "Tokens.hpp"
 
 enum class Keyword {
     CLASS,
@@ -33,53 +34,6 @@ enum class Keyword {
     RETURN
 };
 
-class Token {
-public:
-    Token() { };
-    virtual ~Token() = default;
-    virtual std::string toString() { return "ILLEGAL TOKEN"; }
-};
-
-class KeywordToken : public Token {
-public:
-    KeywordToken(std::string kw) : val(kw) { };
-    std::string toString() override;
-private:
-    std::string val;
-};
-
-class SymbolToken : public Token {
-public:
-    SymbolToken(char16_t symbol) : val(symbol) { };
-    std::string toString() override;
-private:
-    char16_t val;
-};
-
-class IntConstToken : public Token {
-public:
-    IntConstToken(int16_t intVal) : val(intVal) { };
-    std::string toString() override;
-private:
-    int16_t val;
-};
-
-class StringToken : public Token {
-public:
-    StringToken(const std::string& stringVal) : val(stringVal) { };
-    std::string toString() override;
-private:
-    std::string val;
-};
-
-class IdentifierToken : public Token {
-public:
-    IdentifierToken(const std::string& val) : val(val) { };
-    std::string toString() override;
-private:
-    std::string val;
-};
-
 typedef std::vector<std::shared_ptr<Token>> TokenList;
 
 class JackTokenizer {
@@ -100,6 +54,7 @@ private:
     std::istream& input;
     std::string currentLine;
     bool inCommentBlock;
+    int lineNumber;
 };
 
 #endif
