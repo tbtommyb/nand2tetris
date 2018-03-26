@@ -14,7 +14,8 @@ public:
     ~CompilationEngine() = default;
     bool compile();
     bool compileClass();
-    // bool compileClassVarDec();
+    bool compileClassVarDec();
+    bool compileType();
     // bool compileSubroutine();
     // bool compileParameterList();
     // bool compileVarDec();
@@ -27,9 +28,11 @@ public:
     // bool compileTerm();
     // bool compileExpressionList();
 private:
-    void writeKeyword(const std::string& kw);
-    void writeIdentifier();
-    void writeSymbol(char16_t sym);
+    bool writeKeyword(const std::string& kw);
+    bool writeIdentifier();
+    bool writeSymbol(char16_t sym);
+    bool zeroOrOnce(std::function<void(void)>);
+    bool zeroOrMany(std::function<void(void)>);
     const std::string expected(const std::string&, std::shared_ptr<Token>);
     bool write(std::string val);
     std::vector<std::shared_ptr<Token>>::iterator token;
