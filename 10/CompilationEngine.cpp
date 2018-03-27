@@ -207,6 +207,121 @@ bool CompilationEngine::compileSubroutineBody()
     return true;
 };
 
+bool CompilationEngine::compileStatements()
+{
+    // statement*
+    // TODO - how to do guard check?
+    write("<statements>");
+    indentLevel++;
+
+    zeroOrMany([this] { return compileStatement(); });
+
+    indentLevel--;
+    write("</statements>");
+
+    return true;
+};
+
+bool CompilationEngine::compileStatement()
+{
+    // letStatement | ifStatement | whileStatement | doStatement | returnStatement
+    return oneOf(
+                 [this] { return compileLet(); },
+                 [this] { return compileIf(); },
+                 [this] { return compileWhile(); },
+                 [this] { return compileDo(); },
+                 [this] { return compileReturn(); }
+                 );
+};
+
+bool CompilationEngine::compileLet()
+{
+    // 'let' varName ('[' expression ']')? '=' expression ';'
+    writeKeyword("let");
+    writeIdentifier();
+
+    zeroOrOnce([this] {
+            return writeSymbol('[') && compileExpression() && writeSymbol(']');
+        });
+
+    writeSymbol('=');
+    compileExpression();
+    writeSymbol(';');
+
+    return true;
+};
+
+bool CompilationEngine::compileIf()
+{
+    // 'if '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
+    writeKeyword("if");
+
+    writeSymbol('(');
+    compileExpression();
+    writeSymbol(')');
+
+    writeSymbol('{');
+    compileStatements();
+    writeSymbol('}');
+
+    zeroOrOnce([this] {
+            return writeKeyword("else") && writeSymbol('{') &&
+                compileStatements() && writeSymbol('}');
+        });
+
+    return true;
+};
+
+bool CompilationEngine::compileWhile()
+{
+    // 'while' '(' expression ')' '{' statements '}'
+    writeKeyword("while");
+
+    writeSymbol('(');
+    compileExpression();
+    writeSymbol(')');
+
+    writeSymbol('{');
+    compileStatements();
+    writeSymbol('}');
+
+    return true;
+};
+
+bool CompilationEngine::compileDo()
+{
+    // 'do' subroutineCall ';'
+    writeKeyword("do");
+
+    compileSubroutineCall();
+
+    writeKeyword(";");
+
+    return true;
+};
+
+bool CompilationEngine::compileReturn()
+{
+    // 'return' expression? ';'
+    writeKeyword("return");
+
+    zeroOrOnce([this] { return compileExpression(); });
+
+    writeSymbol(';');
+
+    return true;
+};
+
+bool CompilationEngine::compileExpression()
+{
+    return true;
+};
+
+bool CompilationEngine::compileSubroutineCall()
+{
+    return true;
+};
+
 bool CompilationEngine::zeroOrOnce(std::function<void(void)> F)
 {
     try {

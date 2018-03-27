@@ -20,12 +20,15 @@ public:
     bool compileParameterList();
     bool compileVarDec();
     bool compileSubroutineBody();
-    // bool compileStatements();
-    // bool compileDo();
-    // bool compileLet();
-    // bool compileWhile();
-    // bool compileIf();
-    // bool compileExpression();
+    bool compileStatements();
+    bool compileStatement();
+    bool compileLet();
+    bool compileIf();
+    bool compileWhile();
+    bool compileDo();
+    bool compileReturn();
+    bool compileExpression();
+    bool compileSubroutineCall();
     // bool compileTerm();
     // bool compileExpressionList();
 private:
