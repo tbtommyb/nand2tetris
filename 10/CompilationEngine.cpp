@@ -45,7 +45,8 @@ bool CompilationEngine::compileClass()
     writeIdentifier();
     writeSymbol('{');
 
-    compileClassVarDec();
+    zeroOrMany([this] { return compileClassVarDec(); });
+    zeroOrMany([this] { return compileSubroutineDec(); });
 
     writeSymbol('}');
 
@@ -58,6 +59,13 @@ bool CompilationEngine::compileClass()
 bool CompilationEngine::compileClassVarDec()
 {
     // ('static' | 'field' ) type varName (',' varName)* ';'
+    // TODO abstract this away
+    std::vector<std::string> expected{"static", "field"};
+    auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
+    if (kwToken == nullptr ||
+        (std::find(std::begin(expected), std::end(expected), kwToken->getVal()) == std::end(expected))) {
+            return false;
+        }
 
     write("<classVarDec>");
     indentLevel++;
@@ -82,12 +90,121 @@ bool CompilationEngine::compileClassVarDec()
 
 bool CompilationEngine::compileType()
 {
+    // 'int' | 'char' | 'boolean' | className
     return oneOf(
                  [this] { return writeKeyword("int"); },
                  [this] { return writeKeyword("char"); },
                  [this] { return writeKeyword("boolean"); },
                  [this] { return writeIdentifier(); }
                  );
+};
+
+bool CompilationEngine::compileSubroutineDec()
+{
+    // ('constructor' | 'function' | 'method')
+    // ('void' | type) subroutineName '(' parameterList ')'
+    // subroutineBody
+    std::vector<std::string> expected{"constructor", "function", "method"};
+    auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
+    if (kwToken == nullptr ||
+        (std::find(std::begin(expected), std::end(expected), kwToken->getVal()) == std::end(expected))) {
+            return false;
+        }
+
+    write("<subroutineDec>");
+    indentLevel++;
+
+    oneOf(
+          [this] { return writeKeyword("constructor"); },
+          [this] { return writeKeyword("function"); },
+          [this] { return writeKeyword("method"); }
+          );
+
+    oneOf(
+          [this] { return writeKeyword("void"); },
+          [this] { return compileType(); }
+          );
+
+    writeIdentifier();
+    writeSymbol('(');
+    compileParameterList();
+    writeSymbol(')');
+
+    compileSubroutineBody();
+
+    indentLevel--;
+    write("</subroutineDec>");
+
+    return true;
+};
+
+bool CompilationEngine::compileParameterList()
+{
+    // ((type varName) (',' type varName)*)?
+    auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
+    if (kwToken == nullptr) return false;
+
+    write("<parameterList>");
+    indentLevel++;
+
+    zeroOrOnce([this] {
+            return zeroOrOnce([this] {
+                    return compileType() && writeIdentifier();
+                        }) &&
+                zeroOrMany([this] {return
+                            writeSymbol(',') &&
+                            compileType() &&
+                            writeIdentifier();
+                            });
+        });
+
+    indentLevel--;
+    write("</parameterList>");
+
+    return true;
+};
+
+bool CompilationEngine::compileVarDec()
+{
+    // 'var' type varName (',' varName)* ';'
+    auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
+    if (kwToken == nullptr || kwToken->getVal() != "var") return false;
+
+    write("<varDec>");
+    indentLevel++;
+
+    writeKeyword("var");
+    compileType();
+    writeIdentifier();
+    zeroOrMany([this] {
+            return writeSymbol(',') && writeIdentifier();
+        });
+    writeSymbol(';');
+
+    indentLevel--;
+    write("</varDec>");
+
+    return true;
+};
+
+bool CompilationEngine::compileSubroutineBody()
+{
+    // '{' varDec* statements '}'
+    auto symbolToken = std::dynamic_pointer_cast<SymbolToken>(*token);
+    if (symbolToken == nullptr || symbolToken->getVal() != '{') return false;
+
+    write("<subroutineBody>");
+    indentLevel++;
+
+    writeSymbol('{');
+    zeroOrMany([this] { return compileVarDec(); });
+    // compileStatements();
+    writeSymbol('}');
+
+    indentLevel--;
+    write("</subroutineBody");
+
+    return true;
 };
 
 bool CompilationEngine::zeroOrOnce(std::function<void(void)> F)
@@ -100,10 +217,10 @@ bool CompilationEngine::zeroOrOnce(std::function<void(void)> F)
     }
 };
 
-bool CompilationEngine::zeroOrMany(std::function<void(void)> F)
+bool CompilationEngine::zeroOrMany(std::function<bool(void)> F)
 {
     try {
-        while(zeroOrOnce(F)) { }
+        while(F()) { }
         return true;
     } catch (const CompilationError& e) {
         return false;
@@ -166,7 +283,7 @@ bool CompilationEngine::writeSymbol(char16_t sym)
 const std::string CompilationEngine::expected(const std::string& expect, const std::shared_ptr<Token> got)
 {
     std::stringstream ss{};
-    ss << "l" << got->getLineNumber() << ": expected '" << expect << "', received '" << got->valToString() << "'" << std::endl;
+    ss << "l" << got->getLineNumber() << ": expected " << expect << "', received '" << got->valToString() << "'" << std::endl;
     return ss.str();
 };
 

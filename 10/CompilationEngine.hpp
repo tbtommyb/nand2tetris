@@ -16,9 +16,10 @@ public:
     bool compileClass();
     bool compileClassVarDec();
     bool compileType();
-    // bool compileSubroutine();
-    // bool compileParameterList();
-    // bool compileVarDec();
+    bool compileSubroutineDec();
+    bool compileParameterList();
+    bool compileVarDec();
+    bool compileSubroutineBody();
     // bool compileStatements();
     // bool compileDo();
     // bool compileLet();
@@ -32,7 +33,7 @@ private:
     bool writeIdentifier();
     bool writeSymbol(char16_t sym);
     bool zeroOrOnce(std::function<void(void)>);
-    bool zeroOrMany(std::function<void(void)>);
+    bool zeroOrMany(std::function<bool(void)>);
     const std::string expected(const std::string&, std::shared_ptr<Token>);
     bool write(std::string val);
     std::vector<std::shared_ptr<Token>>::iterator token;
