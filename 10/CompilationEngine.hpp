@@ -28,13 +28,19 @@ public:
     bool compileDo();
     bool compileReturn();
     bool compileExpression();
+    bool compileTerm();
     bool compileSubroutineCall();
-    // bool compileTerm();
-    // bool compileExpressionList();
+    bool compileExpressionList();
+    bool compileOp();
+    bool compileUnaryOp();
+    bool compileKeywordConstant();
+    // bool compileStringConst();
 private:
     bool writeKeyword(const std::string& kw);
     bool writeIdentifier();
     bool writeSymbol(char16_t sym);
+    bool writeIntConst();
+    bool writeStringConst();
     bool zeroOrOnce(std::function<void(void)>);
     bool zeroOrMany(std::function<bool(void)>);
     const std::string expected(const std::string&, std::shared_ptr<Token>);

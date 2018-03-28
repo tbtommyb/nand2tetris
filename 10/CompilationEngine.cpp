@@ -14,7 +14,8 @@ template<typename T, typename... As>
 bool oneOf(T t, As... Fs)
 {
     try {
-        return t();
+        if(t()) { return true; }
+        return oneOf(Fs...);
     } catch (const CompilationError& e) {
         return oneOf(Fs...);
     }
@@ -204,7 +205,12 @@ bool CompilationEngine::compileSubroutineBody()
 bool CompilationEngine::compileStatements()
 {
     // statement*
-    // TODO - how to do guard check?
+    // A nicer way to do this would be good
+    std::vector<std::string> expected{"let", "if", "else", "while", "do", "return"};
+    if (std::find(std::begin(expected), std::end(expected), (*token)->valToString()) == std::end(expected)) {
+        return false;
+    }
+
     write("<statements>");
     indentLevel++;
 
@@ -231,6 +237,11 @@ bool CompilationEngine::compileStatement()
 bool CompilationEngine::compileLet()
 {
     // 'let' varName ('[' expression ']')? '=' expression ';'
+    if ((*token)->valToString() != "let") { return false; }
+
+    write("<letStatement>");
+    indentLevel++;
+
     writeKeyword("let");
     writeIdentifier();
 
@@ -242,12 +253,20 @@ bool CompilationEngine::compileLet()
     compileExpression();
     writeSymbol(';');
 
+    indentLevel--;
+    write("</letStatement>");
+
     return true;
 };
 
 bool CompilationEngine::compileIf()
 {
     // 'if '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
+    if ((*token)->valToString() != "if") { return false; }
+
+    write("<ifStatement>");
+    indentLevel++;
+
     writeKeyword("if");
 
     writeSymbol('(');
@@ -263,12 +282,20 @@ bool CompilationEngine::compileIf()
                 compileStatements() && writeSymbol('}');
         });
 
+    indentLevel--;
+    write("</ifStatement>");
+
     return true;
 };
 
 bool CompilationEngine::compileWhile()
 {
     // 'while' '(' expression ')' '{' statements '}'
+    if ((*token)->valToString() != "while") { return false; }
+
+    write("<whileStatement>");
+    indentLevel++;
+
     writeKeyword("while");
 
     writeSymbol('(');
@@ -279,17 +306,28 @@ bool CompilationEngine::compileWhile()
     compileStatements();
     writeSymbol('}');
 
+    indentLevel--;
+    write("</whileStatement>");
+
     return true;
 };
 
 bool CompilationEngine::compileDo()
 {
     // 'do' subroutineCall ';'
+    if ((*token)->valToString() != "do") { return false; }
+
+    write("<doStatement>");
+    indentLevel++;
+
     writeKeyword("do");
 
     compileSubroutineCall();
 
     writeKeyword(";");
+
+    indentLevel--;
+    write("</doStatement>");
 
     return true;
 };
@@ -297,26 +335,161 @@ bool CompilationEngine::compileDo()
 bool CompilationEngine::compileReturn()
 {
     // 'return' expression? ';'
+    if ((*token)->valToString() != "return") { return false; }
+
+    write("<returnStatement>");
+    indentLevel++;
+
     writeKeyword("return");
 
     zeroOrOnce([this] { return compileExpression(); });
 
     writeSymbol(';');
 
+    indentLevel--;
+    write("</returnStatement>");
+
     return true;
 };
 
 bool CompilationEngine::compileExpression()
 {
-    token++;
+    // term (op term)*
+
+    write("<expression>");
+    indentLevel++;
+
+    compileTerm();
+
+    zeroOrMany([this] { return compileOp() && compileTerm(); });
+
+    indentLevel--;
+    write("</expression>");
+
+    return true;
+};
+
+bool CompilationEngine::compileTerm()
+{
+    // integerConstant | stringConstant | keywordConstant | varName |
+    // varName '[' expression ']' | subroutineCall |
+    // '(' expression ')' | unaryOp term
+    write("<term>");
+    indentLevel++;
+
+    oneOf(
+          [this] { return compileUnaryOp() && compileTerm(); },
+          [this] { return writeIntConst(); },
+          [this] { return writeStringConst(); },
+          [this] { return compileKeywordConstant(); },
+          [this] { return writeSymbol('(') && compileExpression() && writeSymbol(')'); },
+          [this] {
+              if (auto tok = std::dynamic_pointer_cast<IdentifierToken>(*token)) {
+                  auto next = std::next(token, 1);
+                  if ((*next)->valToString() == "[") {
+                      return writeSymbol('[') && compileExpression() && writeSymbol(']');
+                  }
+                  if ((*next)->valToString() == ".") {
+                      return compileSubroutineCall();
+                  }
+              }
+              return false;
+          });
+
+    indentLevel--;
+    write("</term>");
+
     return true;
 };
 
 bool CompilationEngine::compileSubroutineCall()
 {
-    token++;
+    // subroutineName '(' expressionList ')' | (className | varName)
+    // '.' subroutineName '(' expressionList ')'
+    write("<subroutineCall>");
+    indentLevel++;
+
+    std::cout << (*token)->valToString() << std::endl;
+    oneOf(
+          // this is returning false and it's dropping back to the next part of the expression rather
+          // than trying the second oneOf
+          [this] {
+              return writeIdentifier() && writeSymbol('(') &&
+              compileExpressionList() && writeSymbol(')');
+          },
+          [this] {
+              return writeIdentifier() &&
+                  writeSymbol('.') &&
+                  writeIdentifier() &&
+                  writeSymbol('(') &&
+                  compileExpressionList() &&
+                  writeSymbol(')');
+          });
+
+    indentLevel--;
+    write("</subroutineCall>");
+
     return true;
 };
+
+bool CompilationEngine::compileExpressionList()
+{
+    // (expression (',' expression)* )?
+    write("<expressionList>");
+    indentLevel++;
+
+    zeroOrOnce([this] {
+            return compileExpression() &&
+                zeroOrMany([this] {
+                        return writeSymbol(',') && compileExpression();
+                    });
+        });
+
+    indentLevel--;
+    write("</expressionList>");
+
+    return true;
+};
+
+bool CompilationEngine::compileOp()
+{
+    // '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '='
+    return oneOf(
+                 [this] { return writeSymbol('+'); },
+                 [this] { return writeSymbol('-'); },
+                 [this] { return writeSymbol('*'); },
+                 [this] { return writeSymbol('/'); },
+                 [this] { return writeSymbol('&'); },
+                 [this] { return writeSymbol('|'); },
+                 [this] { return writeSymbol('<'); },
+                 [this] { return writeSymbol('>'); },
+                 [this] { return writeSymbol('='); }
+                 );
+};
+
+bool CompilationEngine::compileUnaryOp()
+{
+    // '-' | '~'
+    return oneOf(
+                 [this] { return writeSymbol('~'); },
+                 [this] { return writeSymbol('-'); }
+                 );
+};
+
+bool CompilationEngine::compileKeywordConstant()
+{
+    // 'true'| 'false' | 'null' | 'this'
+    return oneOf(
+                 [this] { return writeKeyword("true"); },
+                 [this] { return writeKeyword("false"); },
+                 [this] { return writeKeyword("null"); },
+                 [this] { return writeKeyword("this"); }
+                 );
+};
+
+// bool CompilationEngine::compileStringConst()
+// {
+//     // '"' 
 
 bool CompilationEngine::zeroOrOnce(std::function<void(void)> F)
 {
@@ -375,18 +548,49 @@ bool CompilationEngine::writeSymbol(char16_t sym)
     auto symbolToken = std::dynamic_pointer_cast<SymbolToken>(*token);
     std::string expect(1, sym);
 
+
     if (symbolToken == nullptr) {
         std::stringstream ss{};
         ss << "symbol '" << expect;
         throw CompilationError(expected(ss.str(), *token));
     }
 
+    std::cout << "val " << symbolToken->valToString() << std::endl;
+    std::cout << "sym " << expect << std::endl;
     if (symbolToken->getVal() == sym) {
         write(symbolToken->toString());
         token++;
     } else {
         throw CompilationError(expected(expect, *token));
     }
+
+    return true;
+};
+
+bool CompilationEngine::writeIntConst()
+{
+    auto intToken = std::dynamic_pointer_cast<IntConstToken>(*token);
+
+    if (intToken == nullptr) {
+        throw CompilationError(expected("intConst", *token));
+    }
+
+    write(intToken->toString());
+    token++;
+
+    return true;
+};
+
+bool CompilationEngine::writeStringConst()
+{
+    auto stringToken = std::dynamic_pointer_cast<StringToken>(*token);
+
+    if (stringToken == nullptr) {
+        throw CompilationError(expected("stringConst", *token));
+    }
+
+    write(stringToken->toString());
+    token++;
 
     return true;
 };
