@@ -61,11 +61,9 @@ bool CompilationEngine::compileClassVarDec()
     // ('static' | 'field' ) type varName (',' varName)* ';'
     // TODO abstract this away
     std::vector<std::string> expected{"static", "field"};
-    auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
-    if (kwToken == nullptr ||
-        (std::find(std::begin(expected), std::end(expected), kwToken->getVal()) == std::end(expected))) {
-            return false;
-        }
+    if (std::find(std::begin(expected), std::end(expected), (*token)->valToString()) == std::end(expected)) {
+        return false;
+    }
 
     write("<classVarDec>");
     indentLevel++;
@@ -105,11 +103,9 @@ bool CompilationEngine::compileSubroutineDec()
     // ('void' | type) subroutineName '(' parameterList ')'
     // subroutineBody
     std::vector<std::string> expected{"constructor", "function", "method"};
-    auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
-    if (kwToken == nullptr ||
-        (std::find(std::begin(expected), std::end(expected), kwToken->getVal()) == std::end(expected))) {
-            return false;
-        }
+    if (std::find(std::begin(expected), std::end(expected), (*token)->valToString()) == std::end(expected)) {
+        return false;
+    }
 
     write("<subroutineDec>");
     indentLevel++;
@@ -167,8 +163,7 @@ bool CompilationEngine::compileParameterList()
 bool CompilationEngine::compileVarDec()
 {
     // 'var' type varName (',' varName)* ';'
-    auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
-    if (kwToken == nullptr || kwToken->getVal() != "var") return false;
+    if ((*token)->valToString() != "var") { return false; }
 
     write("<varDec>");
     indentLevel++;
@@ -190,15 +185,14 @@ bool CompilationEngine::compileVarDec()
 bool CompilationEngine::compileSubroutineBody()
 {
     // '{' varDec* statements '}'
-    auto symbolToken = std::dynamic_pointer_cast<SymbolToken>(*token);
-    if (symbolToken == nullptr || symbolToken->getVal() != '{') return false;
+    if ((*token)->valToString() != "{") { return false; }
 
     write("<subroutineBody>");
     indentLevel++;
 
     writeSymbol('{');
     zeroOrMany([this] { return compileVarDec(); });
-    // compileStatements();
+    compileStatements();
     writeSymbol('}');
 
     indentLevel--;
@@ -314,11 +308,13 @@ bool CompilationEngine::compileReturn()
 
 bool CompilationEngine::compileExpression()
 {
+    token++;
     return true;
 };
 
 bool CompilationEngine::compileSubroutineCall()
 {
+    token++;
     return true;
 };
 
