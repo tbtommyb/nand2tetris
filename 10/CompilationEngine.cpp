@@ -378,23 +378,26 @@ bool CompilationEngine::compileTerm()
     indentLevel++;
 
     oneOf(
-          [this] { return compileUnaryOp() && compileTerm(); },
           [this] { return writeIntConst(); },
           [this] { return writeStringConst(); },
           [this] { return compileKeywordConstant(); },
-          [this] { return writeSymbol('(') && compileExpression() && writeSymbol(')'); },
           [this] {
-              if (auto tok = std::dynamic_pointer_cast<IdentifierToken>(*token)) {
-                  auto next = std::next(token, 1);
-                  if ((*next)->valToString() == "[") {
-                      return writeSymbol('[') && compileExpression() && writeSymbol(']');
-                  }
-                  if ((*next)->valToString() == ".") {
-                      return compileSubroutineCall();
-                  }
+              auto tok = std::dynamic_pointer_cast<IdentifierToken>(*token);
+              if (tok == nullptr) { return false; }
+
+              auto next = std::next(token, 1);
+              if ((*next)->valToString() == "[") {
+                  return writeIdentifier() && writeSymbol('[') && compileExpression() && writeSymbol(']');
               }
-              return false;
-          });
+              if (((*next)->valToString() == ".") || ((*next)->valToString() == "(")) {
+                  return compileSubroutineCall();
+              } else {
+                  return writeIdentifier();
+              }
+          },
+          [this] { return writeSymbol('(') && compileExpression() && writeSymbol(')'); },
+          [this] { return compileUnaryOp() && compileTerm(); }
+          );
 
     indentLevel--;
     write("</term>");
@@ -409,20 +412,22 @@ bool CompilationEngine::compileSubroutineCall()
     write("<subroutineCall>");
     indentLevel++;
 
-    std::cout << (*token)->valToString() << std::endl;
+    writeIdentifier();
     oneOf(
-          // this is returning false and it's dropping back to the next part of the expression rather
-          // than trying the second oneOf
           [this] {
-              return writeIdentifier() && writeSymbol('(') &&
-              compileExpressionList() && writeSymbol(')');
+              return writeSymbol('(') && compileExpressionList() && writeSymbol(')');
           },
           [this] {
-              return writeIdentifier() &&
-                  writeSymbol('.') &&
+              return writeSymbol('.') &&
                   writeIdentifier() &&
                   writeSymbol('(') &&
-                  compileExpressionList() &&
+                  [this] {
+                  // auto next = std::next(token, 1);
+                  if ((*token)->valToString() != ")") {
+                      return compileExpressionList();
+                  }
+                  return true;
+              }() &&
                   writeSymbol(')');
           });
 
@@ -555,8 +560,6 @@ bool CompilationEngine::writeSymbol(char16_t sym)
         throw CompilationError(expected(ss.str(), *token));
     }
 
-    std::cout << "val " << symbolToken->valToString() << std::endl;
-    std::cout << "sym " << expect << std::endl;
     if (symbolToken->getVal() == sym) {
         write(symbolToken->toString());
         token++;
