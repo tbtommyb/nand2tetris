@@ -38,8 +38,7 @@ typedef std::vector<std::shared_ptr<Token>> TokenList;
 
 class JackTokenizer {
 public:
-    JackTokenizer(std::istream&);
-    ~JackTokenizer() = default;
+    explicit JackTokenizer(std::istream&);
     std::vector<std::shared_ptr<Token>> getTokenList();
 private:
     bool isRemainingChar(std::string::iterator&);
@@ -53,8 +52,8 @@ private:
     bool isIdentifier(const std::string&);
     std::istream& input;
     std::string currentLine;
-    bool multilineCommentBlock;
     int lineNumber;
+    bool multilineCommentBlock;
 };
 
 #endif

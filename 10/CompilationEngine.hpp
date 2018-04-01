@@ -41,10 +41,10 @@ private:
     bool writeIntConst();
     bool writeStringConst();
     bool tokenMatches(std::vector<std::string>);
-    bool zeroOrOnce(std::function<void(void)>);
-    bool zeroOrMany(std::function<bool(void)>);
-    const std::string expected(const std::string&, std::shared_ptr<Token>);
-    bool write(std::string val);
+    bool zeroOrOnce(const std::function<void(void)>&);
+    bool zeroOrMany(const std::function<bool(void)>&);
+    const std::string expected(const std::string&, const std::shared_ptr<Token>&);
+    bool write(const std::string& val);
     std::vector<std::shared_ptr<Token>>::iterator token;
     std::ostream& out;
     int indentLevel, indent;

@@ -2,8 +2,9 @@
 #define __CompilationError__
 
 #include <string>
+#include <exception>
 
-class CompilationError {
+class CompilationError : public std::exception {
 public:
     CompilationError(const char* msg) : msg(msg) { }
     CompilationError(std::string msg) : CompilationError(msg.c_str()) { }

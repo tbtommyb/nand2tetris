@@ -47,7 +47,7 @@ std::unordered_set<char16_t> validSymbols = {
     '~',
 };
 
-JackTokenizer::JackTokenizer(std::istream& in) : input(in), lineNumber(0) { };
+JackTokenizer::JackTokenizer(std::istream& in) : input(in), lineNumber(0), multilineCommentBlock(false) { };
 
 bool JackTokenizer::isCommentLine(std::string::iterator& it)
 {
@@ -82,8 +82,6 @@ void JackTokenizer::skipCommentBlock(std::string::iterator& it)
     }
 
     std::advance(it, 2);
-
-    return;
 };
 
 bool JackTokenizer::isRemainingChar(std::string::iterator& it)

@@ -513,20 +513,20 @@ bool CompilationEngine::compileKeywordConstant()
 // Private helper methods
 // ======================
 
-bool CompilationEngine::writeKeyword(const std::string& ident)
+bool CompilationEngine::writeKeyword(const std::string& kw)
 {
     auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
     if (kwToken == nullptr) {
         std::stringstream ss{};
-        ss << "keyword '" << ident;
+        ss << "keyword '" << kw;
         throw CompilationError(expected(ss.str(), *token));
     }
 
-    if (kwToken->getVal() == ident) {
+    if (kwToken->getVal() == kw) {
         write(kwToken->toString());
         token++;
     } else {
-        throw CompilationError(expected(ident, *token));
+        throw CompilationError(expected(kw, *token));
     }
 
     return true;
@@ -597,7 +597,7 @@ bool CompilationEngine::tokenMatches(std::vector<std::string> options)
     return std::find(std::begin(options), std::end(options), (*token)->valToString()) != std::end(options);
 };
 
-bool CompilationEngine::zeroOrOnce(std::function<void(void)> F)
+bool CompilationEngine::zeroOrOnce(const std::function<void(void)>& F)
 {
     try {
         F();
@@ -607,7 +607,7 @@ bool CompilationEngine::zeroOrOnce(std::function<void(void)> F)
     }
 };
 
-bool CompilationEngine::zeroOrMany(std::function<bool(void)> F)
+bool CompilationEngine::zeroOrMany(const std::function<bool(void)>& F)
 {
     try {
         while(F()) { }
@@ -617,14 +617,14 @@ bool CompilationEngine::zeroOrMany(std::function<bool(void)> F)
     }
 };
 
-const std::string CompilationEngine::expected(const std::string& expect, const std::shared_ptr<Token> got)
+const std::string CompilationEngine::expected(const std::string& expect, const std::shared_ptr<Token>& got)
 {
     std::stringstream ss{};
     ss << "l" << got->getLineNumber() << ": expected " << expect << "', received '" << got->valToString() << "'" << std::endl;
     return ss.str();
 };
 
-bool CompilationEngine::write(std::string val)
+bool CompilationEngine::write(const std::string& val)
 {
     std::string indentation(indentLevel * indent, ' ');
     out << indentation << val << std::endl;
