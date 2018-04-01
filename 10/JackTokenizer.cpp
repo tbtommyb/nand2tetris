@@ -57,7 +57,7 @@ bool JackTokenizer::isCommentLine(std::string::iterator& it)
     return *it == '/' && *std::next(it) == '/';
 };
 
-bool JackTokenizer::skipCommentBlock(std::string::iterator& it)
+void JackTokenizer::skipCommentBlock(std::string::iterator& it)
 {
     if (multilineCommentBlock) {
         while (!(*it == '*' && *std::next(it) == '/')) {
@@ -68,7 +68,7 @@ bool JackTokenizer::skipCommentBlock(std::string::iterator& it)
     }
 
     if (!(*it == '/' && *std::next(it) == '*')) {
-        return false;
+        return;
     }
 
     std::advance(it, 2);
@@ -77,13 +77,13 @@ bool JackTokenizer::skipCommentBlock(std::string::iterator& it)
         it++;
         if (it == currentLine.end()) {
             multilineCommentBlock = true;
-            return true;
+            return;
         }
     }
 
     std::advance(it, 2);
 
-    return false;
+    return;
 };
 
 bool JackTokenizer::isRemainingChar(std::string::iterator& it)

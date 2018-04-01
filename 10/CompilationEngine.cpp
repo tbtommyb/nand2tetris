@@ -23,6 +23,9 @@ bool oneOf(T t, As... Fs)
 
 CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), out(out), indentLevel(0), indent(2) { }
 
+// Public compilation methods
+// ==========================
+
 bool CompilationEngine::compile()
 {
     try {
@@ -60,11 +63,8 @@ bool CompilationEngine::compileClass()
 bool CompilationEngine::compileClassVarDec()
 {
     // ('static' | 'field' ) type varName (',' varName)* ';'
-    // TODO abstract this away
-    std::vector<std::string> expected{"static", "field"};
-    if (std::find(std::begin(expected), std::end(expected), (*token)->valToString()) == std::end(expected)) {
-        return false;
-    }
+
+    if (!tokenMatches({"static", "field"})) return false;
 
     write("<classVarDec>");
     indentLevel++;
@@ -90,6 +90,7 @@ bool CompilationEngine::compileClassVarDec()
 bool CompilationEngine::compileType()
 {
     // 'int' | 'char' | 'boolean' | className
+
     return oneOf(
                  [this] { return writeKeyword("int"); },
                  [this] { return writeKeyword("char"); },
@@ -103,10 +104,8 @@ bool CompilationEngine::compileSubroutineDec()
     // ('constructor' | 'function' | 'method')
     // ('void' | type) subroutineName '(' parameterList ')'
     // subroutineBody
-    std::vector<std::string> expected{"constructor", "function", "method"};
-    if (std::find(std::begin(expected), std::end(expected), (*token)->valToString()) == std::end(expected)) {
-        return false;
-    }
+
+    if (!tokenMatches({"constructor", "function", "method"})) return false;
 
     write("<subroutineDec>");
     indentLevel++;
@@ -138,8 +137,8 @@ bool CompilationEngine::compileSubroutineDec()
 bool CompilationEngine::compileParameterList()
 {
     // ((type varName) (',' type varName)*)?
-    auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
-    if (kwToken == nullptr) return false;
+
+    if (!std::dynamic_pointer_cast<KeywordToken>(*token)) return false;
 
     write("<parameterList>");
     indentLevel++;
@@ -147,12 +146,12 @@ bool CompilationEngine::compileParameterList()
     zeroOrOnce([this] {
             return zeroOrOnce([this] {
                     return compileType() && writeIdentifier();
-                        }) &&
+                }) &&
                 zeroOrMany([this] {return
                             writeSymbol(',') &&
                             compileType() &&
                             writeIdentifier();
-                            });
+                    });
         });
 
     indentLevel--;
@@ -164,7 +163,8 @@ bool CompilationEngine::compileParameterList()
 bool CompilationEngine::compileVarDec()
 {
     // 'var' type varName (',' varName)* ';'
-    if ((*token)->valToString() != "var") { return false; }
+
+    if (!tokenMatches({"var"})) return false;
 
     write("<varDec>");
     indentLevel++;
@@ -172,9 +172,9 @@ bool CompilationEngine::compileVarDec()
     writeKeyword("var");
     compileType();
     writeIdentifier();
-    zeroOrMany([this] {
-            return writeSymbol(',') && writeIdentifier();
-        });
+
+    zeroOrMany([this] {return writeSymbol(',') && writeIdentifier(); });
+
     writeSymbol(';');
 
     indentLevel--;
@@ -186,7 +186,8 @@ bool CompilationEngine::compileVarDec()
 bool CompilationEngine::compileSubroutineBody()
 {
     // '{' varDec* statements '}'
-    if ((*token)->valToString() != "{") { return false; }
+
+    if (!tokenMatches({"{"})) return false;
 
     write("<subroutineBody>");
     indentLevel++;
@@ -205,11 +206,8 @@ bool CompilationEngine::compileSubroutineBody()
 bool CompilationEngine::compileStatements()
 {
     // statement*
-    // A nicer way to do this would be good
-    std::vector<std::string> expected{"let", "if", "else", "while", "do", "return"};
-    if (std::find(std::begin(expected), std::end(expected), (*token)->valToString()) == std::end(expected)) {
-        return false;
-    }
+
+    if (!tokenMatches({"let", "if", "else", "while", "do", "return"})) return false;
 
     write("<statements>");
     indentLevel++;
@@ -225,6 +223,7 @@ bool CompilationEngine::compileStatements()
 bool CompilationEngine::compileStatement()
 {
     // letStatement | ifStatement | whileStatement | doStatement | returnStatement
+
     return oneOf(
                  [this] { return compileLet(); },
                  [this] { return compileIf(); },
@@ -237,7 +236,8 @@ bool CompilationEngine::compileStatement()
 bool CompilationEngine::compileLet()
 {
     // 'let' varName ('[' expression ']')? '=' expression ';'
-    if ((*token)->valToString() != "let") { return false; }
+
+    if (!tokenMatches({"let"})) return false;
 
     write("<letStatement>");
     indentLevel++;
@@ -262,7 +262,8 @@ bool CompilationEngine::compileLet()
 bool CompilationEngine::compileIf()
 {
     // 'if '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
-    if ((*token)->valToString() != "if") { return false; }
+
+    if (!tokenMatches({"if"})) return false;
 
     write("<ifStatement>");
     indentLevel++;
@@ -291,7 +292,8 @@ bool CompilationEngine::compileIf()
 bool CompilationEngine::compileWhile()
 {
     // 'while' '(' expression ')' '{' statements '}'
-    if ((*token)->valToString() != "while") { return false; }
+
+    if (!tokenMatches({"while"})) return false;
 
     write("<whileStatement>");
     indentLevel++;
@@ -315,7 +317,8 @@ bool CompilationEngine::compileWhile()
 bool CompilationEngine::compileDo()
 {
     // 'do' subroutineCall ';'
-    if ((*token)->valToString() != "do") { return false; }
+
+    if (!tokenMatches({"do"})) return false;
 
     write("<doStatement>");
     indentLevel++;
@@ -335,7 +338,8 @@ bool CompilationEngine::compileDo()
 bool CompilationEngine::compileReturn()
 {
     // 'return' expression? ';'
-    if ((*token)->valToString() != "return") { return false; }
+
+    if (!tokenMatches({"return"})) return false;
 
     write("<returnStatement>");
     indentLevel++;
@@ -376,6 +380,7 @@ bool CompilationEngine::compileTerm()
     // integerConstant | stringConstant | keywordConstant | varName |
     // varName '[' expression ']' | subroutineCall |
     // '(' expression ')' | unaryOp term
+
     write("<term>");
     indentLevel++;
 
@@ -411,6 +416,7 @@ bool CompilationEngine::compileSubroutineCall()
 {
     // subroutineName '(' expressionList ')' | (className | varName)
     // '.' subroutineName '(' expressionList ')'
+
     write("<subroutineCall>");
     indentLevel++;
 
@@ -436,7 +442,7 @@ bool CompilationEngine::compileSubroutineCall()
                   }
                   return true;
               }() &&
-                  writeSymbol(')');
+                   writeSymbol(')');
           });
 
     indentLevel--;
@@ -448,6 +454,7 @@ bool CompilationEngine::compileSubroutineCall()
 bool CompilationEngine::compileExpressionList()
 {
     // (expression (',' expression)* )?
+
     write("<expressionList>");
     indentLevel++;
 
@@ -467,6 +474,7 @@ bool CompilationEngine::compileExpressionList()
 bool CompilationEngine::compileOp()
 {
     // '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '='
+
     return oneOf(
                  [this] { return writeSymbol('+'); },
                  [this] { return writeSymbol('-'); },
@@ -483,6 +491,7 @@ bool CompilationEngine::compileOp()
 bool CompilationEngine::compileUnaryOp()
 {
     // '-' | '~'
+
     return oneOf(
                  [this] { return writeSymbol('~'); },
                  [this] { return writeSymbol('-'); }
@@ -492,6 +501,7 @@ bool CompilationEngine::compileUnaryOp()
 bool CompilationEngine::compileKeywordConstant()
 {
     // 'true'| 'false' | 'null' | 'this'
+
     return oneOf(
                  [this] { return writeKeyword("true"); },
                  [this] { return writeKeyword("false"); },
@@ -500,36 +510,15 @@ bool CompilationEngine::compileKeywordConstant()
                  );
 };
 
-// bool CompilationEngine::compileStringConst()
-// {
-//     // '"' 
-
-bool CompilationEngine::zeroOrOnce(std::function<void(void)> F)
-{
-    try {
-        F();
-        return true;
-    } catch (const CompilationError& e) {
-        return false;
-    }
-};
-
-bool CompilationEngine::zeroOrMany(std::function<bool(void)> F)
-{
-    try {
-        while(F()) { }
-        return true;
-    } catch (const CompilationError& e) {
-        return false;
-    }
-};
+// Private helper methods
+// ======================
 
 bool CompilationEngine::writeKeyword(const std::string& ident)
 {
     auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
     if (kwToken == nullptr) {
         std::stringstream ss{};
-        ss << "keyword " << ident;
+        ss << "keyword '" << ident;
         throw CompilationError(expected(ss.str(), *token));
     }
 
@@ -558,10 +547,9 @@ bool CompilationEngine::writeIdentifier()
 
 bool CompilationEngine::writeSymbol(char16_t sym)
 {
-    auto symbolToken = std::dynamic_pointer_cast<SymbolToken>(*token);
     std::string expect(1, sym);
 
-
+    auto symbolToken = std::dynamic_pointer_cast<SymbolToken>(*token);
     if (symbolToken == nullptr) {
         std::stringstream ss{};
         ss << "symbol '" << expect;
@@ -581,7 +569,6 @@ bool CompilationEngine::writeSymbol(char16_t sym)
 bool CompilationEngine::writeIntConst()
 {
     auto intToken = std::dynamic_pointer_cast<IntConstToken>(*token);
-
     if (intToken == nullptr) {
         throw CompilationError(expected("intConst", *token));
     }
@@ -595,7 +582,6 @@ bool CompilationEngine::writeIntConst()
 bool CompilationEngine::writeStringConst()
 {
     auto stringToken = std::dynamic_pointer_cast<StringToken>(*token);
-
     if (stringToken == nullptr) {
         throw CompilationError(expected("stringConst", *token));
     }
@@ -606,10 +592,35 @@ bool CompilationEngine::writeStringConst()
     return true;
 };
 
+bool CompilationEngine::tokenMatches(std::vector<std::string> options)
+{
+    return std::find(std::begin(options), std::end(options), (*token)->valToString()) != std::end(options);
+};
+
+bool CompilationEngine::zeroOrOnce(std::function<void(void)> F)
+{
+    try {
+        F();
+        return true;
+    } catch (const CompilationError& e) {
+        return false;
+    }
+};
+
+bool CompilationEngine::zeroOrMany(std::function<bool(void)> F)
+{
+    try {
+        while(F()) { }
+        return true;
+    } catch (const CompilationError& e) {
+        return false;
+    }
+};
+
 const std::string CompilationEngine::expected(const std::string& expect, const std::shared_ptr<Token> got)
 {
     std::stringstream ss{};
-    ss << "l" << got->getLineNumber() << ": expected '" << expect << "', received '" << got->valToString() << "'" << std::endl;
+    ss << "l" << got->getLineNumber() << ": expected " << expect << "', received '" << got->valToString() << "'" << std::endl;
     return ss.str();
 };
 

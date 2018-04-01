@@ -44,7 +44,7 @@ public:
 private:
     bool isRemainingChar(std::string::iterator&);
     bool isCommentLine(std::string::iterator&);
-    bool skipCommentBlock(std::string::iterator&);
+    void skipCommentBlock(std::string::iterator&);
     std::shared_ptr<Token> nextToken(const std::string&);
     bool isKeyword(const std::string&);
     bool isSymbol(char16_t);
