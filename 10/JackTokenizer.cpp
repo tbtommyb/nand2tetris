@@ -184,7 +184,7 @@ bool JackTokenizer::isInteger(const std::string& input)
 
 bool JackTokenizer::isString(const std::string& input)
 {
-    const std::regex pattern{R"(^\"[\w\s]+\"$)"};
+    const std::regex pattern{R"(^\"[[:print:]]+\"$)"};
     return std::regex_match(input, pattern);
 };
 
