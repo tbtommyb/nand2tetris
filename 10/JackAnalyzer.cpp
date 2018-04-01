@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
     fs::path input{argv[1]};
     if (fs::is_directory(input)) {
         for (const auto& entry : fs::directory_iterator(input)) {
-            if (entry.path().extension() == "jack") {
+            if (entry.path().extension() == ".jack") {
                 filesToProcess.push_back(entry.path());
             }
         }

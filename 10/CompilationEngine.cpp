@@ -324,7 +324,7 @@ bool CompilationEngine::compileDo()
 
     compileSubroutineCall();
 
-    writeKeyword(";");
+    writeSymbol(';');
 
     indentLevel--;
     write("</doStatement>");
@@ -342,7 +342,9 @@ bool CompilationEngine::compileReturn()
 
     writeKeyword("return");
 
-    zeroOrOnce([this] { return compileExpression(); });
+    if ((*token)->valToString() != ";") {
+        zeroOrOnce([this] { return compileExpression(); });
+    };
 
     writeSymbol(';');
 
@@ -385,7 +387,7 @@ bool CompilationEngine::compileTerm()
               auto tok = std::dynamic_pointer_cast<IdentifierToken>(*token);
               if (tok == nullptr) { return false; }
 
-              auto next = std::next(token, 1);
+              auto next = std::next(token);
               if ((*next)->valToString() == "[") {
                   return writeIdentifier() && writeSymbol('[') && compileExpression() && writeSymbol(']');
               }
@@ -415,14 +417,20 @@ bool CompilationEngine::compileSubroutineCall()
     writeIdentifier();
     oneOf(
           [this] {
-              return writeSymbol('(') && compileExpressionList() && writeSymbol(')');
+              return writeSymbol('(') &&
+                  [this] {
+                  if ((*token)->valToString() != ")") {
+                      return compileExpressionList();
+                  }
+                  return true;
+              }() &&
+                   writeSymbol(')');
           },
           [this] {
               return writeSymbol('.') &&
                   writeIdentifier() &&
                   writeSymbol('(') &&
                   [this] {
-                  // auto next = std::next(token, 1);
                   if ((*token)->valToString() != ")") {
                       return compileExpressionList();
                   }
@@ -601,7 +609,7 @@ bool CompilationEngine::writeStringConst()
 const std::string CompilationEngine::expected(const std::string& expect, const std::shared_ptr<Token> got)
 {
     std::stringstream ss{};
-    ss << "l" << got->getLineNumber() << ": expected " << expect << "', received '" << got->valToString() << "'" << std::endl;
+    ss << "l" << got->getLineNumber() << ": expected '" << expect << "', received '" << got->valToString() << "'" << std::endl;
     return ss.str();
 };
 

@@ -53,7 +53,7 @@ private:
     bool isIdentifier(const std::string&);
     std::istream& input;
     std::string currentLine;
-    bool inCommentBlock;
+    bool multilineCommentBlock;
     int lineNumber;
 };
 

@@ -2,27 +2,27 @@
 #include "JackTokenizer.hpp"
 
 std::map<std::string, Keyword> validKeywords = {
-    { "class", Keyword::CLASS },
+    { "class",       Keyword::CLASS },
     { "constructor", Keyword::CONSTRUCTOR },
-    { "function", Keyword::FUNCTION },
-    { "method", Keyword::METHOD },
-    { "field", Keyword::FIELD },
-    { "static", Keyword::STATIC },
-    { "var", Keyword::VAR },
-    { "int", Keyword::INT },
-    { "char", Keyword::CHAR },
-    { "boolean", Keyword::BOOLEAN },
-    { "void", Keyword::VOID },
-    { "true", Keyword::TRUE },
-    { "false", Keyword::FALSE },
-    { "null", Keyword::NULL_VAL },
-    { "this", Keyword::THIS },
-    { "let", Keyword::LET },
-    { "do", Keyword::DO },
-    { "if", Keyword::IF },
-    { "else", Keyword::ELSE },
-    { "while", Keyword::WHILE },
-    { "return", Keyword::RETURN },
+    { "function",    Keyword::FUNCTION },
+    { "method",      Keyword::METHOD },
+    { "field",       Keyword::FIELD },
+    { "static",      Keyword::STATIC },
+    { "var",         Keyword::VAR },
+    { "int",         Keyword::INT },
+    { "char",        Keyword::CHAR },
+    { "boolean",     Keyword::BOOLEAN },
+    { "void",        Keyword::VOID },
+    { "true",        Keyword::TRUE },
+    { "false",       Keyword::FALSE },
+    { "null",        Keyword::NULL_VAL },
+    { "this",        Keyword::THIS },
+    { "let",         Keyword::LET },
+    { "do",          Keyword::DO },
+    { "if",          Keyword::IF },
+    { "else",        Keyword::ELSE },
+    { "while",       Keyword::WHILE },
+    { "return",      Keyword::RETURN },
 };
 
 std::unordered_set<char16_t> validSymbols = {
@@ -51,39 +51,39 @@ JackTokenizer::JackTokenizer(std::istream& in) : input(in), lineNumber(0) { };
 
 bool JackTokenizer::isCommentLine(std::string::iterator& it)
 {
-    if (*it != '/') {
-        return false;
+    if (multilineCommentBlock) {
+        return currentLine.find("*/") == std::string::npos;
     }
-
-    if (*++it == '/') {
-        return true;
-    }
-
-    it--;
-    return false;
+    return *it == '/' && *std::next(it) == '/';
 };
 
 bool JackTokenizer::skipCommentBlock(std::string::iterator& it)
 {
-    if (*it != '/') {
-        return false;
-    }
-
-    if (*++it != '*') {
-        it--;
-        return false;
-    }
-
-    inCommentBlock = true;
-
-    while (inCommentBlock) {
-        if (*it++ == '*' && *it++ == '/') {
-            inCommentBlock = false;
+    if (multilineCommentBlock) {
+        while (!(*it == '*' && *std::next(it) == '/')) {
             it++;
+        }
+        multilineCommentBlock = false;
+        std::advance(it, 2);
+    }
+
+    if (!(*it == '/' && *std::next(it) == '*')) {
+        return false;
+    }
+
+    std::advance(it, 2);
+
+    while (!(*it == '*' && *std::next(it) == '/')) {
+        it++;
+        if (it == currentLine.end()) {
+            multilineCommentBlock = true;
+            return true;
         }
     }
 
-    return true;
+    std::advance(it, 2);
+
+    return false;
 };
 
 bool JackTokenizer::isRemainingChar(std::string::iterator& it)
@@ -117,8 +117,17 @@ TokenList JackTokenizer::getTokenList()
             if (isSymbol(*it)) {
                 token.append(1, *it++);
             } else {
-                while(it != currentLine.end() && !isspace(*it) && !isSymbol(*it)) {
+                // handle string constants
+                if (*it == '\"') {
                     token.append(1, *it++);
+                    while (it != currentLine.end() && *it != '\"') {
+                        token.append(1, *it++);
+                    }
+                    token.append(1, *it++);
+                } else {
+                    while (it != currentLine.end() && !isspace(*it) && !isSymbol(*it)) {
+                        token.append(1, *it++);
+                    }
                 }
             }
             tokenList.push_back(nextToken(token));
@@ -175,7 +184,7 @@ bool JackTokenizer::isInteger(const std::string& input)
 
 bool JackTokenizer::isString(const std::string& input)
 {
-    const std::regex pattern{"^\"[[:alpha:]]+\"$"};
+    const std::regex pattern{R"(^\"[\w\s]+\"$)"};
     return std::regex_match(input, pattern);
 };
 
