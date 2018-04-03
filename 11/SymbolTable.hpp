@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 
-enum SymbolKind = { NONE, STATIC, FIELD, ARGUMENT, VAR };
+enum SymbolKind { NONE, STATIC, FIELD, ARGUMENT, VAR };
 
 struct Symbol {
     std::string type;
@@ -16,12 +16,17 @@ class SymbolTable {
 public:
     SymbolTable() = default;
     ~SymbolTable() = default;
+    void startSubroutine();
     void addSymbol(const std::string& name, const std::string& type, const SymbolKind& kind);
+    const Symbol& getSymbol(const std::string& name);
     int getCount(const SymbolKind& kind);
-    bool contains(const std::string& name);
 private:
-    std::map<std::string, Symbol> symbolMap;
-    int staticCount, fieldCount, argumentCount, varCount;
+    std::map<std::string, Symbol> classMap;
+    std::map<std::string, Symbol> subroutineMap;
+    int staticCount = 0;
+    int fieldCount = 0;
+    int argumentCount = 0;
+    int varCount = 0;
 };
 
 #endif
