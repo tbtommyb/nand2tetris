@@ -7,6 +7,7 @@
 #include "Tokens.hpp"
 #include "JackTokenizer.hpp"
 #include "CompilationError.hpp"
+#include "SymbolTable.hpp"
 
 class CompilationEngine {
 public:
@@ -15,7 +16,7 @@ public:
     bool compile();
     bool compileClass();
     bool compileClassVarDec();
-    const Token& readType();
+    std::shared_ptr<Token> readType();
     bool compileType();
     bool compileSubroutineDec();
     bool compileParameterList();
@@ -36,9 +37,9 @@ public:
     bool compileUnaryOp();
     bool compileKeywordConstant();
 private:
-    const Token& readKeyword(const std::vector<std::string>& options);
+    std::shared_ptr<KeywordToken> readKeyword(const std::vector<std::string>& options);
     bool writeKeyword(const std::string& kw);
-    const Token& readIdentifier();
+    std::shared_ptr<IdentifierToken> readIdentifier();
     bool writeIdentifier();
     bool writeSymbol(char16_t sym);
     bool writeIntConst();
@@ -50,6 +51,7 @@ private:
     bool write(const std::string& val);
     std::vector<std::shared_ptr<Token>>::iterator token;
     std::ostream& out;
+    SymbolTable symbolTable;
     int indentLevel, indent;
 };
 

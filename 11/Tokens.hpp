@@ -10,6 +10,8 @@ public:
     virtual const std::string toString() const { return ""; };
     virtual const std::string valToString() const { return ""; };
     int getLineNumber() const noexcept { return lineNumber; };
+    template<typename T>
+    T* instance() { return dynamic_cast<T *>(this); }
 protected:
     int lineNumber;
 };

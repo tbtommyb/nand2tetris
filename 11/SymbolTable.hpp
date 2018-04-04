@@ -4,6 +4,8 @@
 #include <map>
 #include <string>
 
+#include "Tokens.hpp"
+
 enum SymbolKind { NONE, STATIC, FIELD, ARGUMENT, VAR };
 
 struct Symbol {
@@ -17,7 +19,8 @@ public:
     SymbolTable() = default;
     ~SymbolTable() = default;
     void startSubroutine();
-    void addSymbol(const std::string& name, const std::string& type, const SymbolKind& kind);
+    Symbol addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, SymbolKind kind);
+    Symbol addSymbol(const std::string& name, const std::string& type, const SymbolKind& kind);
     const Symbol& getSymbol(const std::string& name);
     int getCount(const SymbolKind& kind);
 private:

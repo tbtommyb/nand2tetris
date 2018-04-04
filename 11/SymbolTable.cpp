@@ -11,7 +11,12 @@ void SymbolTable::startSubroutine()
     varCount = 0;
 };
 
-void SymbolTable::addSymbol(const std::string& name, const std::string& type, const SymbolKind& kind)
+Symbol SymbolTable::addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, SymbolKind kind)
+{
+    return addSymbol(name->valToString(), type->valToString(), kind);
+};
+
+Symbol SymbolTable::addSymbol(const std::string& name, const std::string& type, const SymbolKind& kind)
 {
     int count = 0;
     switch (kind) {
@@ -38,6 +43,8 @@ void SymbolTable::addSymbol(const std::string& name, const std::string& type, co
     } else {
         subroutineMap[name] = entry;
     }
+
+    return entry;
 };
 
 const Symbol& SymbolTable::getSymbol(const std::string& name)
