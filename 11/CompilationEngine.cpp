@@ -21,6 +21,22 @@ bool oneOf(T t, As... Fs)
     }
 };
 
+template<typename T>
+const Token oneOfToken(T t)
+{
+    return t();
+};
+
+template<typename T, typename... As>
+const Token oneOfToken(T t, As... Fs)
+{
+    try {
+        return t();
+    } catch (const CompilationError& e) {
+        return oneOfToken(Fs...);
+    }
+};
+
 CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), out(out), indentLevel(0), indent(2) { }
 
 // Public compilation methods
@@ -69,15 +85,14 @@ bool CompilationEngine::compileClassVarDec()
     write("<classVarDec>");
     indentLevel++;
 
-    oneOf(
-          [this] { return writeKeyword("static"); },
-          [this] { return writeKeyword("field"); }
-          );
+    const auto& kw = readKeyword({"static", "field"});
+    const auto& type = readType();
+    const auto& ident = readIdentifier();
 
-    compileType();
-    writeIdentifier();
-
-    zeroOrMany([this] { return writeSymbol(',') && writeIdentifier(); });
+    std::stringstream ss{};
+    ss << "<identifier kind='" << kw.valToString() << "' type='" << type.valToString() << "'>" << ident.valToString() << "</identifier>";
+    write(ss.str());
+    // zeroOrMany([this] { return writeSymbol(',') && writeIdentifier(); });
 
     writeSymbol(';');
 
@@ -85,6 +100,16 @@ bool CompilationEngine::compileClassVarDec()
     write("</classVarDec>");
 
     return true;
+};
+
+const Token& CompilationEngine::readType()
+{
+    // 'int' | 'char' | 'boolean' | className
+
+    return oneOfToken(
+                 [this] { return readKeyword({"int", "char", "boolean"}); },
+                 [this] { return readIdentifier(); }
+                 );
 };
 
 bool CompilationEngine::compileType()
@@ -513,6 +538,23 @@ bool CompilationEngine::compileKeywordConstant()
 // Private helper methods
 // ======================
 
+const Token& CompilationEngine::readKeyword(const std::vector<std::string>& options)
+{
+    auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
+    if (kwToken == nullptr) {
+        throw CompilationError(expected("keyword", *token));
+    }
+
+    for (auto& option : options) {
+        if(kwToken->getVal() == option) {
+            token++;
+            return *(kwToken.get());
+        }
+    }
+
+    throw CompilationError(expected("keyword", *token));
+};
+
 bool CompilationEngine::writeKeyword(const std::string& kw)
 {
     auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
@@ -530,6 +572,17 @@ bool CompilationEngine::writeKeyword(const std::string& kw)
     }
 
     return true;
+};
+
+const Token& CompilationEngine::readIdentifier()
+{
+    auto identToken = std::dynamic_pointer_cast<IdentifierToken>(*token);
+    if (identToken == nullptr) {
+        throw CompilationError(expected("identifier", *token));
+    }
+
+    token++;
+    return *(identToken.get());
 };
 
 bool CompilationEngine::writeIdentifier()

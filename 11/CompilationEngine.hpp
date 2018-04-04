@@ -15,6 +15,7 @@ public:
     bool compile();
     bool compileClass();
     bool compileClassVarDec();
+    const Token& readType();
     bool compileType();
     bool compileSubroutineDec();
     bool compileParameterList();
@@ -35,7 +36,9 @@ public:
     bool compileUnaryOp();
     bool compileKeywordConstant();
 private:
+    const Token& readKeyword(const std::vector<std::string>& options);
     bool writeKeyword(const std::string& kw);
+    const Token& readIdentifier();
     bool writeIdentifier();
     bool writeSymbol(char16_t sym);
     bool writeIntConst();
