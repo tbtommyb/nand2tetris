@@ -64,8 +64,11 @@ bool CompilationEngine::compileClass()
     write("<class>");
     indentLevel++;
 
-    writeKeyword("class");
-    writeIdentifier();
+    readKeyword({"class"});
+    const auto& ident = readIdentifier();
+
+    write(symbolTable.create(ident, SymbolKind::CLASS).toString());
+
     writeSymbol('{');
 
     zeroOrMany([this] { return compileClassVarDec(); });
@@ -132,18 +135,15 @@ bool CompilationEngine::compileSubroutineDec()
     write("<subroutineDec>");
     indentLevel++;
 
-    oneOf(
-          [this] { return writeKeyword("constructor"); },
-          [this] { return writeKeyword("function"); },
-          [this] { return writeKeyword("method"); }
-          );
-
+    readKeyword({"constructor", "function", "method"});
     oneOfToken(
                [this] { return readKeyword({"void"}); },
                [this] { return readType(); }
                );
+    const auto& ident = readIdentifier();
 
-    writeIdentifier();
+    write(symbolTable.create(ident, SymbolKind::SUBROUTINE).toString());
+
     writeSymbol('(');
     compileParameterList();
     writeSymbol(')');
@@ -454,30 +454,22 @@ bool CompilationEngine::compileSubroutineCall()
     write("<subroutineCall>");
     indentLevel++;
 
-    writeIdentifier();
-    oneOf(
-          [this] {
-              return writeSymbol('(') &&
-                  [this] {
-                  if ((*token)->valToString() != ")") {
-                      return compileExpressionList();
-                  }
-                  return true;
-              }() &&
-                   writeSymbol(')');
-          },
-          [this] {
-              return writeSymbol('.') &&
-                  writeIdentifier() &&
-                  writeSymbol('(') &&
-                  [this] {
-                  if ((*token)->valToString() != ")") {
-                      return compileExpressionList();
-                  }
-                  return true;
-              }() &&
-                   writeSymbol(')');
-          });
+    auto next = std::next(token);
+    if ((*next)->valToString() == ".") {
+        const auto& ident = readIdentifier();
+        // TODO check for existing var in symboltable, use class if not found
+        write(symbolTable.create(ident, SymbolKind::CLASS).toString());
+        readSymbol('.');
+    }
+
+    const auto& ident = readIdentifier();
+    write(symbolTable.create(ident, SymbolKind::SUBROUTINE).toString());
+
+    writeSymbol('(');
+    if (readSymbol(')') == nullptr) {
+        compileExpressionList();
+        writeSymbol(')');
+    }
 
     indentLevel--;
     write("</subroutineCall>");

@@ -8,7 +8,9 @@ std::map<std::string, SymbolKind::Enum> symbolMap = {
     { "static", SymbolKind::STATIC },
     { "field", SymbolKind::FIELD },
     { "argument", SymbolKind::ARGUMENT },
-    { "var", SymbolKind::VAR }
+    { "var", SymbolKind::VAR },
+    { "class", SymbolKind::CLASS },
+    { "subroutine", SymbolKind::SUBROUTINE }
 };
 
 void SymbolTable::startSubroutine()
@@ -16,6 +18,11 @@ void SymbolTable::startSubroutine()
     subroutineMap.clear();
     argumentCount = 0;
     varCount = 0;
+};
+
+Symbol SymbolTable::create(std::shared_ptr<Token> name, const SymbolKind::Enum& kind)
+{
+    return Symbol{ name->valToString(), "", kind, 0 };
 };
 
 Symbol SymbolTable::addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, std::shared_ptr<Token> kind)
@@ -43,6 +50,9 @@ Symbol SymbolTable::addSymbol(const std::string& name, const std::string& type, 
         break;
     case SymbolKind::VAR:
         count = varCount++;
+        break;
+    case SymbolKind::CLASS:
+    case SymbolKind::SUBROUTINE:
         break;
     case SymbolKind::NONE:
         std::cout << "Could not add " << name << " of type none." << std::endl;
@@ -89,6 +99,8 @@ int SymbolTable::getCount(const SymbolKind::Enum& kind)
         return varCount;
         break;
     case SymbolKind::NONE:
+    case SymbolKind::SUBROUTINE:
+    case SymbolKind::CLASS:
         return 0;
     };
 };

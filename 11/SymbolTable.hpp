@@ -8,7 +8,7 @@
 #include "Tokens.hpp"
 
 struct SymbolKind {
-    enum Enum { NONE, STATIC, FIELD, ARGUMENT, VAR };
+    enum Enum { NONE, STATIC, FIELD, ARGUMENT, VAR, SUBROUTINE, CLASS };
     static const std::string toString(const SymbolKind::Enum& kind) {
         switch (kind) {
         case NONE:
@@ -21,6 +21,10 @@ struct SymbolKind {
             return "argument";
         case VAR:
             return "var";
+        case SUBROUTINE:
+            return "subroutine";
+        case CLASS:
+            return "class";
         }
     }
 };
@@ -31,6 +35,9 @@ struct Symbol {
     SymbolKind::Enum kind;
     int id;
     const std::string toString() {
+        if (kind == SymbolKind::CLASS || kind == SymbolKind::SUBROUTINE) {
+            return "<identifier kind='" + SymbolKind::toString(kind) + "'>" + name + "</identifier>";
+        }
         return "<identifier kind='" + SymbolKind::toString(kind) + "' type='" + type + "' id='" + std::to_string(id) + "'>" + name + "</identifier>";
     }
 };
@@ -40,6 +47,7 @@ public:
     SymbolTable() = default;
     ~SymbolTable() = default;
     void startSubroutine();
+    Symbol create(std::shared_ptr<Token> name, const SymbolKind::Enum& kind);
     Symbol addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, std::shared_ptr<Token> kind);
     Symbol addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, const SymbolKind::Enum& kind);
     Symbol addSymbol(const std::string& name, const std::string& type, const SymbolKind::Enum& kind);
