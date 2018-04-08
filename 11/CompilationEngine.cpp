@@ -92,23 +92,16 @@ bool CompilationEngine::compileClassVarDec()
     const auto& type = readType();
     const auto& ident = readIdentifier();
 
-    std::string typeName{};
-    if(auto kwToken = type->instance<KeywordToken>()) {
-        typeName = kwToken->valToString();
+    auto symbol = symbolTable.addSymbol(ident, type, kw);
+    write(symbol.toString());
+
+    while(readSymbol(',') != nullptr) {
+        const auto& ident = readIdentifier();
+        auto symbol = symbolTable.addSymbol(ident, type, kw);
+        write(symbol.toString());
     }
-    if(auto identToken = type->instance<IdentifierToken>()) {
-        typeName = identToken->valToString();
-    }
 
-    // TODO get SymbolType
-    auto symbol = symbolTable.addSymbol(ident, type, STATIC);
-
-    std::stringstream ss{};
-    ss << "<identifier kind='" << kw->valToString() << "' type='" << typeName << "' id='" <<symbol.id << "'>" << ident->valToString() << "</identifier>";
-    write(ss.str());
-    // zeroOrMany([this] { return writeSymbol(',') && writeIdentifier(); });
-
-    writeSymbol(';');
+    readSymbol(';');
 
     indentLevel--;
     write("</classVarDec>");
@@ -610,6 +603,25 @@ bool CompilationEngine::writeIdentifier()
     token++;
 
     return true;
+};
+
+std::shared_ptr<SymbolToken> CompilationEngine::readSymbol(char16_t sym)
+{
+    std::string expect(1, sym);
+    std::stringstream ss{};
+    ss << "symbol '" << expect;
+
+    auto symbolToken = std::dynamic_pointer_cast<SymbolToken>(*token);
+    if (symbolToken == nullptr) {
+        return nullptr;
+    }
+
+    if (symbolToken->getVal() != sym) {
+        return nullptr;
+    }
+
+    token++;
+    return symbolToken;
 };
 
 bool CompilationEngine::writeSymbol(char16_t sym)

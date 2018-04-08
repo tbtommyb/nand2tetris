@@ -4,6 +4,13 @@
 // TODOs
 // cerr
 
+std::map<std::string, SymbolKind::Enum> symbolMap = {
+    { "static", SymbolKind::STATIC },
+    { "field", SymbolKind::FIELD },
+    { "argument", SymbolKind::ARGUMENT },
+    { "var", SymbolKind::VAR }
+};
+
 void SymbolTable::startSubroutine()
 {
     subroutineMap.clear();
@@ -11,34 +18,34 @@ void SymbolTable::startSubroutine()
     varCount = 0;
 };
 
-Symbol SymbolTable::addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, SymbolKind kind)
+Symbol SymbolTable::addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, std::shared_ptr<Token> kind)
 {
-    return addSymbol(name->valToString(), type->valToString(), kind);
+    return addSymbol(name->valToString(), type->valToString(), symbolMap.at(kind->valToString()));
 };
 
-Symbol SymbolTable::addSymbol(const std::string& name, const std::string& type, const SymbolKind& kind)
+Symbol SymbolTable::addSymbol(const std::string& name, const std::string& type, const SymbolKind::Enum& kind)
 {
     int count = 0;
     switch (kind) {
-    case STATIC:
+    case SymbolKind::STATIC:
         count = staticCount++;
         break;
-    case FIELD:
+    case SymbolKind::FIELD:
         count = fieldCount++;
         break;
-    case ARGUMENT:
+    case SymbolKind::ARGUMENT:
         count = argumentCount++;
         break;
-    case VAR:
+    case SymbolKind::VAR:
         count = varCount++;
         break;
-    case NONE:
+    case SymbolKind::NONE:
         std::cout << "Could not add " << name << " of type none." << std::endl;
     };
 
-    Symbol entry = { type, kind, count };
+    Symbol entry = { name, type, kind, count };
 
-    if (kind == STATIC || kind == FIELD) {
+    if (kind == SymbolKind::STATIC || kind == SymbolKind::FIELD) {
         classMap[name] = entry;
     } else {
         subroutineMap[name] = entry;
@@ -61,22 +68,22 @@ const Symbol& SymbolTable::getSymbol(const std::string& name)
     }
 };
 
-int SymbolTable::getCount(const SymbolKind& kind)
+int SymbolTable::getCount(const SymbolKind::Enum& kind)
 {
     switch (kind) {
-    case STATIC:
+    case SymbolKind::STATIC:
         return staticCount;
         break;
-    case FIELD:
+    case SymbolKind::FIELD:
         return fieldCount;
         break;
-    case ARGUMENT:
+    case SymbolKind::ARGUMENT:
         return argumentCount;
         break;
-    case VAR:
+    case SymbolKind::VAR:
         return varCount;
         break;
-    case NONE:
+    case SymbolKind::NONE:
         return 0;
     };
 };

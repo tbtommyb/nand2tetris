@@ -1,7 +1,6 @@
 #ifndef __CompilationEngine__
 #define __CompilationEngine__
 
-#include <sstream>
 #include <string>
 #include <iostream>
 #include "Tokens.hpp"
@@ -41,6 +40,7 @@ private:
     bool writeKeyword(const std::string& kw);
     std::shared_ptr<IdentifierToken> readIdentifier();
     bool writeIdentifier();
+    std::shared_ptr<SymbolToken> readSymbol(char16_t sym);
     bool writeSymbol(char16_t sym);
     bool writeIntConst();
     bool writeStringConst();
