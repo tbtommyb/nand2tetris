@@ -16,7 +16,6 @@ public:
     bool compileClass();
     bool compileClassVarDec();
     std::shared_ptr<Token> readType();
-    bool compileType();
     bool compileSubroutineDec();
     bool compileParameterList();
     bool compileVarDec();

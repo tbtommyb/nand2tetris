@@ -41,6 +41,7 @@ public:
     ~SymbolTable() = default;
     void startSubroutine();
     Symbol addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, std::shared_ptr<Token> kind);
+    Symbol addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, const SymbolKind::Enum& kind);
     Symbol addSymbol(const std::string& name, const std::string& type, const SymbolKind::Enum& kind);
     const Symbol& getSymbol(const std::string& name);
     int getCount(const SymbolKind::Enum& kind);

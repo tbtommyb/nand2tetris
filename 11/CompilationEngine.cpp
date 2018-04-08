@@ -119,18 +119,6 @@ std::shared_ptr<Token> CompilationEngine::readType()
                       );
 };
 
-bool CompilationEngine::compileType()
-{
-    // 'int' | 'char' | 'boolean' | className
-
-    return oneOf(
-                 [this] { return writeKeyword("int"); },
-                 [this] { return writeKeyword("char"); },
-                 [this] { return writeKeyword("boolean"); },
-                 [this] { return writeIdentifier(); }
-                 );
-};
-
 bool CompilationEngine::compileSubroutineDec()
 {
     // ('constructor' | 'function' | 'method')
@@ -138,6 +126,8 @@ bool CompilationEngine::compileSubroutineDec()
     // subroutineBody
 
     if (!tokenMatches({"constructor", "function", "method"})) return false;
+
+    symbolTable.startSubroutine();
 
     write("<subroutineDec>");
     indentLevel++;
@@ -148,10 +138,10 @@ bool CompilationEngine::compileSubroutineDec()
           [this] { return writeKeyword("method"); }
           );
 
-    oneOf(
-          [this] { return writeKeyword("void"); },
-          [this] { return compileType(); }
-          );
+    oneOfToken(
+               [this] { return readKeyword({"void"}); },
+               [this] { return readType(); }
+               );
 
     writeIdentifier();
     writeSymbol('(');
@@ -175,16 +165,21 @@ bool CompilationEngine::compileParameterList()
     write("<parameterList>");
     indentLevel++;
 
-    zeroOrOnce([this] {
-            return zeroOrOnce([this] {
-                    return compileType() && writeIdentifier();
-                }) &&
-                zeroOrMany([this] {return
-                            writeSymbol(',') &&
-                            compileType() &&
-                            writeIdentifier();
-                    });
-        });
+    if (readSymbol(')') == nullptr) {
+        const auto& type = readType();
+        const auto& ident = readIdentifier();
+
+        auto symbol = symbolTable.addSymbol(ident, type, SymbolKind::ARGUMENT);
+        write(symbol.toString());
+
+        while (readSymbol(',') != nullptr) {
+            const auto& type = readType();
+            const auto& ident = readIdentifier();
+
+            auto symbol = symbolTable.addSymbol(ident, type, SymbolKind::ARGUMENT);
+            write(symbol.toString());
+        }
+    }
 
     indentLevel--;
     write("</parameterList>");
@@ -201,13 +196,20 @@ bool CompilationEngine::compileVarDec()
     write("<varDec>");
     indentLevel++;
 
-    writeKeyword("var");
-    compileType();
-    writeIdentifier();
+    const auto& kw = readKeyword({"var"});
+    const auto& type = readType();
+    const auto& ident = readIdentifier();
 
-    zeroOrMany([this] {return writeSymbol(',') && writeIdentifier(); });
+    auto symbol = symbolTable.addSymbol(ident, type, kw);
+    write(symbol.toString());
 
-    writeSymbol(';');
+    while(readSymbol(',') != nullptr) {
+        const auto& ident = readIdentifier();
+        auto symbol = symbolTable.addSymbol(ident, type, kw);
+        write(symbol.toString());
+    }
+
+    readSymbol(';');
 
     indentLevel--;
     write("</varDec>");

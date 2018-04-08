@@ -23,6 +23,11 @@ Symbol SymbolTable::addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token
     return addSymbol(name->valToString(), type->valToString(), symbolMap.at(kind->valToString()));
 };
 
+Symbol SymbolTable::addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, const SymbolKind::Enum& kind)
+{
+    return addSymbol(name->valToString(), type->valToString(), kind);
+};
+
 Symbol SymbolTable::addSymbol(const std::string& name, const std::string& type, const SymbolKind::Enum& kind)
 {
     int count = 0;
