@@ -4,6 +4,18 @@
 // TODOs
 // cerr
 
+const std::string Symbol::toString()
+{
+    if (kind == SymbolKind::CLASS || kind == SymbolKind::SUBROUTINE) {
+        return "<identifier kind='" + SymbolKind::toString(kind) + "'>" + name + "</identifier>";
+    }
+    return "<identifier kind='" +
+        SymbolKind::toString(kind) +
+        "' type='" + type +
+        "' id='" + std::to_string(id) +
+        "'>" + name + "</identifier>";
+};
+
 std::map<std::string, SymbolKind::Enum> symbolMap = {
     { "static", SymbolKind::STATIC },
     { "field", SymbolKind::FIELD },
@@ -37,6 +49,11 @@ Symbol SymbolTable::addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token
 
 Symbol SymbolTable::addSymbol(const std::string& name, const std::string& type, const SymbolKind::Enum& kind)
 {
+    if (present(name, kind)) {
+        std::cout << "Duplicate symbol " << name << std::endl;
+        exit(1);
+    }
+
     int count = 0;
     switch (kind) {
     case SymbolKind::STATIC:
@@ -60,7 +77,7 @@ Symbol SymbolTable::addSymbol(const std::string& name, const std::string& type, 
 
     Symbol entry = { name, type, kind, count };
 
-    if (kind == SymbolKind::STATIC || kind == SymbolKind::FIELD) {
+    if (kind == SymbolKind::STATIC || kind == SymbolKind::FIELD || kind == SymbolKind::CLASS || kind == SymbolKind::SUBROUTINE) {
         classMap[name] = entry;
     } else {
         subroutineMap[name] = entry;
@@ -69,17 +86,18 @@ Symbol SymbolTable::addSymbol(const std::string& name, const std::string& type, 
     return entry;
 };
 
-const Symbol& SymbolTable::getSymbol(const std::string& name)
+const Symbol& SymbolTable::getSymbol(const std::string& name, const SymbolKind::Enum& kind)
 {
+    // TODO update 'defined' field in symbol before returning
     try {
-        return subroutineMap.at(name);
-    } catch (std::out_of_range& e) {
-        try {
+        if (kind == SymbolKind::STATIC || kind == SymbolKind::FIELD || kind == SymbolKind::CLASS || kind == SymbolKind::SUBROUTINE) {
             return classMap.at(name);
-        } catch (std::out_of_range& e) {
-            std::cout << "Could not find symbol " << name << std::endl;
-            exit(1);
+        } else {
+            return subroutineMap.at(name);
         }
+    } catch (std::out_of_range& e) {
+        std::cout << "Could not find symbol " << name << std::endl;
+        exit(1);
     }
 };
 
@@ -103,4 +121,13 @@ int SymbolTable::getCount(const SymbolKind::Enum& kind)
     case SymbolKind::CLASS:
         return 0;
     };
+};
+
+bool SymbolTable::present(const std::string& name, const SymbolKind::Enum& kind)
+{
+    if (kind == SymbolKind::STATIC || kind == SymbolKind::FIELD || kind == SymbolKind::CLASS || kind == SymbolKind::SUBROUTINE) {
+        return classMap.find(name) != classMap.end();
+    } else {
+        return subroutineMap.find(name) != subroutineMap.end();
+    }
 };

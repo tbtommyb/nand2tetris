@@ -457,8 +457,11 @@ bool CompilationEngine::compileSubroutineCall()
     auto next = std::next(token);
     if ((*next)->valToString() == ".") {
         const auto& ident = readIdentifier();
-        // TODO check for existing var in symboltable, use class if not found
-        write(symbolTable.create(ident, SymbolKind::CLASS).toString());
+        if (symbolTable.present(ident, SymbolKind::CLASS)) {
+            write(symbolTable.getSymbol(ident, SymbolKind::CLASS).toString());
+        } else {
+            write(symbolTable.getSymbol(ident, SymbolKind::VAR).toString());
+        }
         readSymbol('.');
     }
 

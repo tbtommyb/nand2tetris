@@ -34,12 +34,7 @@ struct Symbol {
     std::string type;
     SymbolKind::Enum kind;
     int id;
-    const std::string toString() {
-        if (kind == SymbolKind::CLASS || kind == SymbolKind::SUBROUTINE) {
-            return "<identifier kind='" + SymbolKind::toString(kind) + "'>" + name + "</identifier>";
-        }
-        return "<identifier kind='" + SymbolKind::toString(kind) + "' type='" + type + "' id='" + std::to_string(id) + "'>" + name + "</identifier>";
-    }
+    const std::string toString();
 };
 
 class SymbolTable {
@@ -51,8 +46,9 @@ public:
     Symbol addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, std::shared_ptr<Token> kind);
     Symbol addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, const SymbolKind::Enum& kind);
     Symbol addSymbol(const std::string& name, const std::string& type, const SymbolKind::Enum& kind);
-    const Symbol& getSymbol(const std::string& name);
+    const Symbol& getSymbol(const std::string& name, const SymbolKind::Enum& kind);
     int getCount(const SymbolKind::Enum& kind);
+    bool present(const std::string& name, const SymbolKind::Enum& kind);
 private:
     std::map<std::string, Symbol> classMap;
     std::map<std::string, Symbol> subroutineMap;
