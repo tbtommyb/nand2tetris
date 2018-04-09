@@ -4,7 +4,7 @@
 // TODOs
 // cerr
 
-const std::string Symbol::toString()
+const std::string Symbol::toString() const
 {
     if (kind == SymbolKind::CLASS || kind == SymbolKind::SUBROUTINE) {
         return "<identifier kind='" + SymbolKind::toString(kind) + "'>" + name + "</identifier>";
@@ -34,7 +34,7 @@ void SymbolTable::startSubroutine()
 
 Symbol SymbolTable::create(std::shared_ptr<Token> name, const SymbolKind::Enum& kind)
 {
-    return Symbol{ name->valToString(), "", kind, 0 };
+    return addSymbol(name->valToString(), "", kind);
 };
 
 Symbol SymbolTable::addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, std::shared_ptr<Token> kind)
@@ -77,7 +77,7 @@ Symbol SymbolTable::addSymbol(const std::string& name, const std::string& type, 
 
     Symbol entry = { name, type, kind, count };
 
-    if (kind == SymbolKind::STATIC || kind == SymbolKind::FIELD || kind == SymbolKind::CLASS || kind == SymbolKind::SUBROUTINE) {
+    if (kind == SymbolKind::STATIC || kind == SymbolKind::FIELD || kind == SymbolKind::CLASS) {
         classMap[name] = entry;
     } else {
         subroutineMap[name] = entry;

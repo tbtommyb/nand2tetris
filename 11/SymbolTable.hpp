@@ -34,7 +34,7 @@ struct Symbol {
     std::string type;
     SymbolKind::Enum kind;
     int id;
-    const std::string toString();
+    const std::string toString() const;
 };
 
 class SymbolTable {

@@ -457,11 +457,15 @@ bool CompilationEngine::compileSubroutineCall()
     auto next = std::next(token);
     if ((*next)->valToString() == ".") {
         const auto& ident = readIdentifier();
-        if (symbolTable.present(ident, SymbolKind::CLASS)) {
-            write(symbolTable.getSymbol(ident, SymbolKind::CLASS).toString());
+
+        Symbol symbol;
+        if (symbolTable.present(ident->valToString(), SymbolKind::CLASS)) {
+            symbol = symbolTable.getSymbol(ident->valToString(), SymbolKind::CLASS);
         } else {
-            write(symbolTable.getSymbol(ident, SymbolKind::VAR).toString());
+            symbol = symbolTable.create(ident, SymbolKind::VAR);
         }
+
+        write(symbol.toString());
         readSymbol('.');
     }
 
