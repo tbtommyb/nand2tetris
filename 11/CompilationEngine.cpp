@@ -37,7 +37,7 @@ std::shared_ptr<Token> oneOfToken(T t, As... Fs)
     }
 };
 
-CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), out(out), indentLevel(0), indent(2)
+CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), vmWriter(out), out(out)
 {
     symbolTable = SymbolTable{};
 }
@@ -61,23 +61,13 @@ bool CompilationEngine::compileClass()
 {
     // 'class' className '{' classVarDec* subroutineDec* '}'
 
-    write("<class>");
-    indentLevel++;
-
     readKeyword({"class"});
     const auto& ident = readIdentifier();
 
-    write(symbolTable.create(ident, SymbolKind::CLASS).toString());
-
-    writeSymbol('{');
+    className = ident->valToString();
 
     zeroOrMany([this] { return compileClassVarDec(); });
     zeroOrMany([this] { return compileSubroutineDec(); });
-
-    writeSymbol('}');
-
-    indentLevel--;
-    write("</class>");
 
     return true;
 };
@@ -88,38 +78,20 @@ bool CompilationEngine::compileClassVarDec()
 
     if (!tokenMatches({"static", "field"})) return false;
 
-    write("<classVarDec>");
-    indentLevel++;
-
     const auto& kw = readKeyword({"static", "field"});
     const auto& type = readType();
     const auto& ident = readIdentifier();
 
     auto symbol = symbolTable.addSymbol(ident, type, kw);
-    write(symbol.toString());
 
     while(readSymbol(',') != nullptr) {
         const auto& ident = readIdentifier();
         auto symbol = symbolTable.addSymbol(ident, type, kw);
-        write(symbol.toString());
     }
 
     readSymbol(';');
 
-    indentLevel--;
-    write("</classVarDec>");
-
     return true;
-};
-
-std::shared_ptr<Token> CompilationEngine::readType()
-{
-    // 'int' | 'char' | 'boolean' | className
-
-    return oneOfToken(
-                      [this]() { return readKeyword({"int", "char", "boolean"}); },
-                      [this]() { return readIdentifier(); }
-                      );
 };
 
 bool CompilationEngine::compileSubroutineDec()
@@ -132,26 +104,23 @@ bool CompilationEngine::compileSubroutineDec()
 
     symbolTable.startSubroutine();
 
-    write("<subroutineDec>");
-    indentLevel++;
-
-    readKeyword({"constructor", "function", "method"});
+    const auto& kw = readKeyword({"constructor", "function", "method"});
     oneOfToken(
                [this] { return readKeyword({"void"}); },
                [this] { return readType(); }
                );
     const auto& ident = readIdentifier();
 
-    write(symbolTable.create(ident, SymbolKind::SUBROUTINE).toString());
+    if (kw->valToString() == "method") {
+        symbolTable.addSymbol("this", className, SymbolKind::ARGUMENT);
+    }
+    // symbolTable.create(ident, SymbolKind::SUBROUTINE);
 
-    writeSymbol('(');
+    readSymbol('(');
     compileParameterList();
-    writeSymbol(')');
+    readSymbol(')');
 
-    compileSubroutineBody();
-
-    indentLevel--;
-    write("</subroutineDec>");
+    compileSubroutineBody(ident, kw);
 
     return true;
 };
@@ -162,27 +131,19 @@ bool CompilationEngine::compileParameterList()
 
     if (!std::dynamic_pointer_cast<KeywordToken>(*token)) return false;
 
-    write("<parameterList>");
-    indentLevel++;
-
     if (readSymbol(')') == nullptr) {
         const auto& type = readType();
         const auto& ident = readIdentifier();
 
-        auto symbol = symbolTable.addSymbol(ident, type, SymbolKind::ARGUMENT);
-        write(symbol.toString());
+        symbolTable.addSymbol(ident, type, SymbolKind::ARGUMENT);
 
         while (readSymbol(',') != nullptr) {
             const auto& type = readType();
             const auto& ident = readIdentifier();
 
-            auto symbol = symbolTable.addSymbol(ident, type, SymbolKind::ARGUMENT);
-            write(symbol.toString());
+            symbolTable.addSymbol(ident, type, SymbolKind::ARGUMENT);
         }
     }
-
-    indentLevel--;
-    write("</parameterList>");
 
     return true;
 };
@@ -193,46 +154,46 @@ bool CompilationEngine::compileVarDec()
 
     if (!tokenMatches({"var"})) return false;
 
-    write("<varDec>");
-    indentLevel++;
-
     const auto& kw = readKeyword({"var"});
     const auto& type = readType();
     const auto& ident = readIdentifier();
 
-    auto symbol = symbolTable.addSymbol(ident, type, kw);
-    write(symbol.toString());
+    symbolTable.addSymbol(ident, type, kw);
 
-    while(readSymbol(',') != nullptr) {
+    while (readSymbol(',') != nullptr) {
         const auto& ident = readIdentifier();
-        auto symbol = symbolTable.addSymbol(ident, type, kw);
-        write(symbol.toString());
+        symbolTable.addSymbol(ident, type, kw);
     }
 
     readSymbol(';');
 
-    indentLevel--;
-    write("</varDec>");
-
     return true;
 };
 
-bool CompilationEngine::compileSubroutineBody()
+bool CompilationEngine::compileSubroutineBody(const std::shared_ptr<Token> name, const std::shared_ptr<Token> kw)
 {
     // '{' varDec* statements '}'
 
     if (!tokenMatches({"{"})) return false;
 
-    write("<subroutineBody>");
-    indentLevel++;
+    readSymbol('{');
 
-    writeSymbol('{');
     zeroOrMany([this] { return compileVarDec(); });
-    compileStatements();
-    writeSymbol('}');
 
-    indentLevel--;
-    write("</subroutineBody");
+    vmWriter.writeFunction(className + "." + name->valToString(), symbolTable.getCount(SymbolKind::VAR));
+
+    if (kw->valToString() == "constructor") {
+      vmWriter.writePush(Segment::CONST, symbolTable.getCount(SymbolKind::FIELD));
+        vmWriter.writeCall("Memory.alloc", 1);
+        vmWriter.writePop(Segment::POINTER, 0);
+    } else if (kw->valToString() == "method") {
+        vmWriter.writePush(Segment::ARG, 0);
+        vmWriter.writePop(Segment::POINTER, 0);
+    }
+
+    compileStatements();
+
+    readSymbol('}');
 
     return true;
 };
@@ -243,13 +204,7 @@ bool CompilationEngine::compileStatements()
 
     if (!tokenMatches({"let", "if", "else", "while", "do", "return"})) return false;
 
-    write("<statements>");
-    indentLevel++;
-
     zeroOrMany([this] { return compileStatement(); });
-
-    indentLevel--;
-    write("</statements>");
 
     return true;
 };
@@ -273,22 +228,22 @@ bool CompilationEngine::compileLet()
 
     if (!tokenMatches({"let"})) return false;
 
-    write("<letStatement>");
-    indentLevel++;
+    readKeyword({"let"});
+    const auto& name = readIdentifier();
 
-    writeKeyword("let");
-    writeIdentifier();
+    // zeroOrOnce([this] {
+    //         return writeSymbol('[') && compileExpression() && writeSymbol(']');
+    //     });
 
-    zeroOrOnce([this] {
-            return writeSymbol('[') && compileExpression() && writeSymbol(']');
-        });
-
-    writeSymbol('=');
+    readSymbol('=');
     compileExpression();
-    writeSymbol(';');
 
-    indentLevel--;
-    write("</letStatement>");
+    // TODO - handle more than just VAR?
+    const auto& sym = symbolTable.getSymbol(name->valToString(), SymbolKind::VAR);
+    // TODO - convert to segment
+    vmWriter.writePop(SymbolKind::toString(sym.kind), sym.id);
+
+    readSymbol(';');
 
     return true;
 };
@@ -395,9 +350,6 @@ bool CompilationEngine::compileReturn()
 bool CompilationEngine::compileExpression()
 {
     // term (op term)*
-
-    write("<expression>");
-    indentLevel++;
 
     compileTerm();
 
@@ -508,17 +460,9 @@ bool CompilationEngine::compileOp()
 {
     // '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '='
 
-    return oneOf(
-                 [this] { return writeSymbol('+'); },
-                 [this] { return writeSymbol('-'); },
-                 [this] { return writeSymbol('*'); },
-                 [this] { return writeSymbol('/'); },
-                 [this] { return writeSymbol('&'); },
-                 [this] { return writeSymbol('|'); },
-                 [this] { return writeSymbol('<'); },
-                 [this] { return writeSymbol('>'); },
-                 [this] { return writeSymbol('='); }
-                 );
+    const auto& op = readSymbol({'+', '-', '*', '/', '&', '|', '<', '>', '='});
+    vmWriter.write(op->valToString());
+    return true;
 };
 
 bool CompilationEngine::compileUnaryOp()
@@ -545,6 +489,16 @@ bool CompilationEngine::compileKeywordConstant()
 
 // Private helper methods
 // ======================
+
+std::shared_ptr<Token> CompilationEngine::readType()
+{
+    // 'int' | 'char' | 'boolean' | className
+
+    return oneOfToken(
+                      [this]() { return readKeyword({"int", "char", "boolean"}); },
+                      [this]() { return readIdentifier(); }
+                      );
+};
 
 std::shared_ptr<KeywordToken> CompilationEngine::readKeyword(const std::vector<std::string>& options)
 {
@@ -606,23 +560,21 @@ bool CompilationEngine::writeIdentifier()
     return true;
 };
 
-std::shared_ptr<SymbolToken> CompilationEngine::readSymbol(char16_t sym)
+std::shared_ptr<SymbolToken> CompilationEngine::readSymbol(const std::vector<char16_t>& options)
 {
-    std::string expect(1, sym);
-    std::stringstream ss{};
-    ss << "symbol '" << expect;
-
     auto symbolToken = std::dynamic_pointer_cast<SymbolToken>(*token);
     if (symbolToken == nullptr) {
         return nullptr;
     }
 
-    if (symbolToken->getVal() != sym) {
-        return nullptr;
+    for (auto& option : options) {
+        if (symbolToken->getVal() == option) {
+            token++;
+            return symbolToken;
+        }
     }
 
-    token++;
-    return symbolToken;
+    throw CompilationError(expected("symbol", *token));
 };
 
 bool CompilationEngine::writeSymbol(char16_t sym)

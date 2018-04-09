@@ -9,9 +9,9 @@ struct Segment {
     static const std::string toString(const Segment::Enum& seg) {
         switch(seg) {
         case CONST:
-            return "const";
+            return "constant";
         case ARG:
-            return "arg";
+            return "argument";
         case LOCAL:
             return "local";
         case STATIC:
@@ -66,8 +66,8 @@ public:
     void writeCall(const std::string& name, int nArgs);
     void writeFunction(const std::string& name, int nLocals);
     void writeReturn();
-private:
     bool write(const std::string& cmd, const std::string& arg1 = "", const std::string& arg2 = "");
+private:
     std::ostream& out;
 };
 

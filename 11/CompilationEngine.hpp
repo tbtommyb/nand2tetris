@@ -7,6 +7,7 @@
 #include "JackTokenizer.hpp"
 #include "CompilationError.hpp"
 #include "SymbolTable.hpp"
+#include "VMWriter.hpp"
 
 class CompilationEngine {
 public:
@@ -15,11 +16,10 @@ public:
     bool compile();
     bool compileClass();
     bool compileClassVarDec();
-    std::shared_ptr<Token> readType();
     bool compileSubroutineDec();
     bool compileParameterList();
     bool compileVarDec();
-    bool compileSubroutineBody();
+    bool compileSubroutineBody(const std::shared_ptr<Token> name, const std::shared_ptr<Token> kw);
     bool compileStatements();
     bool compileStatement();
     bool compileLet();
@@ -35,11 +35,13 @@ public:
     bool compileUnaryOp();
     bool compileKeywordConstant();
 private:
+    std::shared_ptr<Token> readType();
     std::shared_ptr<KeywordToken> readKeyword(const std::vector<std::string>& options);
     bool writeKeyword(const std::string& kw);
     std::shared_ptr<IdentifierToken> readIdentifier();
     bool writeIdentifier();
     std::shared_ptr<SymbolToken> readSymbol(char16_t sym);
+    std::shared_ptr<SymbolToken> readSymbol(const std::vector<char16_t>& options);
     bool writeSymbol(char16_t sym);
     bool writeIntConst();
     bool writeStringConst();
@@ -49,8 +51,10 @@ private:
     const std::string expected(const std::string&, const std::shared_ptr<Token>&);
     bool write(const std::string& val);
     std::vector<std::shared_ptr<Token>>::iterator token;
-    std::ostream& out;
+    VMWriter vmWriter;
+    std::string className;
     SymbolTable symbolTable;
+    std::ostream& out;
     int indentLevel, indent;
 };
 

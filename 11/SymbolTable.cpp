@@ -77,7 +77,7 @@ Symbol SymbolTable::addSymbol(const std::string& name, const std::string& type, 
 
     Symbol entry = { name, type, kind, count };
 
-    if (kind == SymbolKind::STATIC || kind == SymbolKind::FIELD || kind == SymbolKind::CLASS) {
+    if (kind == SymbolKind::STATIC || kind == SymbolKind::FIELD) {
         classMap[name] = entry;
     } else {
         subroutineMap[name] = entry;
