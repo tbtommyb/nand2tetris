@@ -45,10 +45,12 @@ private:
     bool zeroOrOnce(const std::function<void(void)>&);
     bool zeroOrMany(const std::function<bool(void)>&);
     const std::string expected(const std::string&, const std::shared_ptr<Token>&);
+  const std::string newLabel();
     std::vector<std::shared_ptr<Token>>::iterator token;
     VMWriter vmWriter;
     std::string className;
     SymbolTable symbolTable;
+    int labelCount;
 };
 
 #endif

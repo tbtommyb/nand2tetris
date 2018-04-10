@@ -56,7 +56,7 @@ std::map<char, std::string> opCommandMap = {
   { '|', "or" },
 };
 
-CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), vmWriter(out)
+CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), vmWriter(out), labelCount(0)
 {
     symbolTable = SymbolTable{};
 }
@@ -235,92 +235,113 @@ bool CompilationEngine::compileStatement()
     // letStatement | ifStatement | whileStatement | doStatement | returnStatement
 
     return oneOf(
-                 // [this] { return compileLet(); },
-                 // [this] { return compileIf(); },
-                 // [this] { return compileWhile(); },
+                 [this] { return compileLet(); },
+                 [this] { return compileIf(); },
+                 [this] { return compileWhile(); },
                  [this] { return compileDo(); },
                  [this] { return compileReturn(); }
                  );
 };
 
-// bool CompilationEngine::compileLet()
-// {
-//     // 'let' varName ('[' expression ']')? '=' expression ';'
+bool CompilationEngine::compileLet()
+{
+    // 'let' varName ('[' expression ']')? '=' expression ';'
 
-//     if (!tokenMatches({"let"})) return false;
+    if (!tokenMatches({"let"})) return false;
 
-//     readKeyword({"let"});
-//     const auto& ident = symbolTable.getSymbol(readIdentifier()->valToString());
+    bool arrayAccess = false;
 
-//     // zeroOrOnce([this] {
-//     //         return writeSymbol('[') && compileExpression() && writeSymbol(']');
-//     //     });
+    readKeyword({"let"});
+    const auto& ident = symbolTable.getSymbol(readIdentifier()->valToString());
+    auto segment = kindSegmentMap.at(ident->kind);
 
-//     readSymbol({'='});
-//     compileExpression();
+    if (readSymbol({'['}) != nullptr) {
+      arrayAccess = true;
+      vmWriter.writePush(segment, ident->id);
+      compileExpression();
+      readSymbol({']'});
+      vmWriter.write("add");
+    }
 
-//     auto segment = kindSegmentMap.at(ident->kind);
-//     vmWriter.writePop(segment, ident->id);
+    readSymbol({'='});
+    compileExpression();
 
-//     readSymbol({';'});
+    if (arrayAccess) {
+        vmWriter.writePop(Segment::TEMP, 1);
+        vmWriter.writePop(Segment::POINTER, 1);
+        vmWriter.writePush(Segment::TEMP, 1);
+        vmWriter.writePop(Segment::THAT, 1);
+    } else {
+        vmWriter.writePop(segment, ident->id);
+    }
 
-//     return true;
-// };
+    readSymbol({';'});
 
-// bool CompilationEngine::compileIf()
-// {
-//     // 'if '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
+    return true;
+};
 
-//     if (!tokenMatches({"if"})) return false;
+bool CompilationEngine::compileIf()
+{
+    // 'if '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
 
-//     write("<ifStatement>");
-//     indentLevel++;
+    if (!tokenMatches({"if"})) return false;
 
-//     writeKeyword("if");
+    readKeyword({"if"});
+    auto endLabel = newLabel();
 
-//     writeSymbol('(');
-//     compileExpression();
-//     writeSymbol(')');
+    readSymbol({'('});
+    compileExpression();
+    readSymbol({')'});
 
-//     writeSymbol('{');
-//     compileStatements();
-//     writeSymbol('}');
+    vmWriter.write("not");
+    auto notLabel = newLabel();
+    vmWriter.writeIf(notLabel);
 
-//     zeroOrOnce([this] {
-//             return writeKeyword("else") && writeSymbol('{') &&
-//                 compileStatements() && writeSymbol('}');
-//         });
+    readSymbol({ '{' });
+    compileStatements();
+    readSymbol({ '}' });
 
-//     indentLevel--;
-//     write("</ifStatement>");
+    vmWriter.writeGoto(endLabel);
+    vmWriter.writeLabel(notLabel);
 
-//     return true;
-// };
+    if (readKeyword({"else"}) != nullptr) {
+        readSymbol({'{'});
+        compileStatements();
+        readSymbol({'}'});
+    }
 
-// bool CompilationEngine::compileWhile()
-// {
-//     // 'while' '(' expression ')' '{' statements '}'
+    vmWriter.writeLabel(endLabel);
 
-//     if (!tokenMatches({"while"})) return false;
+    return true;
+};
 
-//     write("<whileStatement>");
-//     indentLevel++;
+bool CompilationEngine::compileWhile()
+{
+    // 'while' '(' expression ')' '{' statements '}'
 
-//     writeKeyword("while");
+    if (!tokenMatches({"while"})) return false;
 
-//     writeSymbol('(');
-//     compileExpression();
-//     writeSymbol(')');
+    readKeyword({"while"});
+    auto topLabel = newLabel();
+    vmWriter.writeLabel(topLabel);
 
-//     writeSymbol('{');
-//     compileStatements();
-//     writeSymbol('}');
+    readSymbol({'('});
+    compileExpression();
+    readSymbol({')'});
 
-//     indentLevel--;
-//     write("</whileStatement>");
+    vmWriter.write("not");
+    auto notLabel = newLabel();
+    vmWriter.writeIf(notLabel);
 
-//     return true;
-// };
+    readSymbol({ '{' });
+    compileStatements();
+    readSymbol({ '}' });
+
+    vmWriter.writeGoto(topLabel);
+    vmWriter.writeLabel(notLabel);
+
+    return true;
+};
 
 bool CompilationEngine::compileDo()
 {
@@ -523,7 +544,7 @@ bool CompilationEngine::compileStringConst()
     vmWriter.writePush(Segment::CONST, string.length());
     vmWriter.writeCall("String.new", 1);
     for (const char& c : string) {
-      vmWriter.writePush(Segment::CONST, int(c));
+        vmWriter.writePush(Segment::CONST, int(c));
         vmWriter.writeCall("String.appendChar", 2);
     }
     token++;
@@ -626,4 +647,9 @@ const std::string CompilationEngine::expected(const std::string& expect, const s
     std::stringstream ss{};
     ss << "l" << got->getLineNumber() << ": expected " << expect << "', received '" << got->valToString() << "'" << std::endl;
     return ss.str();
+};
+
+const std::string CompilationEngine::newLabel()
+{
+    return className + ".label." + std::to_string(labelCount++);
 };
