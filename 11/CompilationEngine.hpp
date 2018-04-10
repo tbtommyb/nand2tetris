@@ -40,7 +40,6 @@ private:
     bool writeKeyword(const std::string& kw);
     std::shared_ptr<IdentifierToken> readIdentifier();
     bool writeIdentifier();
-    std::shared_ptr<SymbolToken> readSymbol(char16_t sym);
     std::shared_ptr<SymbolToken> readSymbol(const std::vector<char16_t>& options);
     bool writeSymbol(char16_t sym);
     bool writeIntConst();

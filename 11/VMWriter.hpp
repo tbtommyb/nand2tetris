@@ -3,6 +3,9 @@
 
 #include <ostream>
 #include <string>
+#include <map>
+
+#include "SymbolTable.hpp"
 
 struct Segment {
     enum Enum { CONST, ARG, LOCAL, STATIC, THIS, THAT, POINTER, TEMP };

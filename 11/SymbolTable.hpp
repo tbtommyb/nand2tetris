@@ -8,7 +8,7 @@
 #include "Tokens.hpp"
 
 struct SymbolKind {
-    enum Enum { NONE, STATIC, FIELD, ARGUMENT, VAR, SUBROUTINE, CLASS };
+    enum Enum { NONE, STATIC, FIELD, ARGUMENT, VAR };
     static const std::string toString(const SymbolKind::Enum& kind) {
         switch (kind) {
         case NONE:
@@ -21,10 +21,6 @@ struct SymbolKind {
             return "argument";
         case VAR:
             return "var";
-        case SUBROUTINE:
-            return "subroutine";
-        case CLASS:
-            return "class";
         }
     }
 };
@@ -42,13 +38,11 @@ public:
     SymbolTable() = default;
     ~SymbolTable() = default;
     void startSubroutine();
-    Symbol create(std::shared_ptr<Token> name, const SymbolKind::Enum& kind);
     Symbol addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, std::shared_ptr<Token> kind);
     Symbol addSymbol(std::shared_ptr<Token> name, std::shared_ptr<Token> type, const SymbolKind::Enum& kind);
     Symbol addSymbol(const std::string& name, const std::string& type, const SymbolKind::Enum& kind);
-    const Symbol& getSymbol(const std::string& name, const SymbolKind::Enum& kind);
+    std::shared_ptr<Symbol> getSymbol(const std::string& name);
     int getCount(const SymbolKind::Enum& kind);
-    bool present(const std::string& name, const SymbolKind::Enum& kind);
 private:
     std::map<std::string, Symbol> classMap;
     std::map<std::string, Symbol> subroutineMap;

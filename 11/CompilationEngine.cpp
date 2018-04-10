@@ -37,6 +37,14 @@ std::shared_ptr<Token> oneOfToken(T t, As... Fs)
     }
 };
 
+std::map<SymbolKind::Enum, Segment::Enum> kindSegmentMap = {
+    { SymbolKind::STATIC, Segment::STATIC },
+    { SymbolKind::FIELD, Segment::THIS },
+    { SymbolKind::ARGUMENT, Segment::ARG },
+    { SymbolKind::VAR, Segment::LOCAL },
+};
+
+
 CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), vmWriter(out), out(out)
 {
     symbolTable = SymbolTable{};
@@ -84,12 +92,12 @@ bool CompilationEngine::compileClassVarDec()
 
     auto symbol = symbolTable.addSymbol(ident, type, kw);
 
-    while(readSymbol(',') != nullptr) {
+    while(readSymbol({','}) != nullptr) {
         const auto& ident = readIdentifier();
         auto symbol = symbolTable.addSymbol(ident, type, kw);
     }
 
-    readSymbol(';');
+    readSymbol({';'});
 
     return true;
 };
@@ -105,20 +113,19 @@ bool CompilationEngine::compileSubroutineDec()
     symbolTable.startSubroutine();
 
     const auto& kw = readKeyword({"constructor", "function", "method"});
-    oneOfToken(
+    if (kw->valToString() == "method") {
+        symbolTable.addSymbol("this", className, SymbolKind::ARGUMENT);
+    }
+
+    const auto& returnType = oneOfToken(
                [this] { return readKeyword({"void"}); },
                [this] { return readType(); }
                );
     const auto& ident = readIdentifier();
 
-    if (kw->valToString() == "method") {
-        symbolTable.addSymbol("this", className, SymbolKind::ARGUMENT);
-    }
-    // symbolTable.create(ident, SymbolKind::SUBROUTINE);
-
-    readSymbol('(');
+    readSymbol({'('});
     compileParameterList();
-    readSymbol(')');
+    readSymbol({')'});
 
     compileSubroutineBody(ident, kw);
 
@@ -131,13 +138,13 @@ bool CompilationEngine::compileParameterList()
 
     if (!std::dynamic_pointer_cast<KeywordToken>(*token)) return false;
 
-    if (readSymbol(')') == nullptr) {
+    if (readSymbol({')'}) == nullptr) {
         const auto& type = readType();
         const auto& ident = readIdentifier();
 
         symbolTable.addSymbol(ident, type, SymbolKind::ARGUMENT);
 
-        while (readSymbol(',') != nullptr) {
+        while (readSymbol({','}) != nullptr) {
             const auto& type = readType();
             const auto& ident = readIdentifier();
 
@@ -160,12 +167,12 @@ bool CompilationEngine::compileVarDec()
 
     symbolTable.addSymbol(ident, type, kw);
 
-    while (readSymbol(',') != nullptr) {
+    while (readSymbol({','}) != nullptr) {
         const auto& ident = readIdentifier();
         symbolTable.addSymbol(ident, type, kw);
     }
 
-    readSymbol(';');
+    readSymbol({';'});
 
     return true;
 };
@@ -176,14 +183,15 @@ bool CompilationEngine::compileSubroutineBody(const std::shared_ptr<Token> name,
 
     if (!tokenMatches({"{"})) return false;
 
-    readSymbol('{');
+    readSymbol({'{'});
 
     zeroOrMany([this] { return compileVarDec(); });
 
+    // TODO add 1 for methods
     vmWriter.writeFunction(className + "." + name->valToString(), symbolTable.getCount(SymbolKind::VAR));
 
     if (kw->valToString() == "constructor") {
-      vmWriter.writePush(Segment::CONST, symbolTable.getCount(SymbolKind::FIELD));
+        vmWriter.writePush(Segment::CONST, symbolTable.getCount(SymbolKind::FIELD));
         vmWriter.writeCall("Memory.alloc", 1);
         vmWriter.writePop(Segment::POINTER, 0);
     } else if (kw->valToString() == "method") {
@@ -193,7 +201,7 @@ bool CompilationEngine::compileSubroutineBody(const std::shared_ptr<Token> name,
 
     compileStatements();
 
-    readSymbol('}');
+    readSymbol({'}'});
 
     return true;
 };
@@ -229,21 +237,19 @@ bool CompilationEngine::compileLet()
     if (!tokenMatches({"let"})) return false;
 
     readKeyword({"let"});
-    const auto& name = readIdentifier();
+    const auto& ident = symbolTable.getSymbol(readIdentifier()->valToString());
 
     // zeroOrOnce([this] {
     //         return writeSymbol('[') && compileExpression() && writeSymbol(']');
     //     });
 
-    readSymbol('=');
+    readSymbol({'='});
     compileExpression();
 
-    // TODO - handle more than just VAR?
-    const auto& sym = symbolTable.getSymbol(name->valToString(), SymbolKind::VAR);
-    // TODO - convert to segment
-    vmWriter.writePop(SymbolKind::toString(sym.kind), sym.id);
+    auto segment = kindSegmentMap.at(ident->kind);
+    vmWriter.writePop(segment, ident->id);
 
-    readSymbol(';');
+    readSymbol({';'});
 
     return true;
 };
@@ -403,35 +409,23 @@ bool CompilationEngine::compileSubroutineCall()
     // subroutineName '(' expressionList ')' | (className | varName)
     // '.' subroutineName '(' expressionList ')'
 
-    write("<subroutineCall>");
-    indentLevel++;
-
     auto next = std::next(token);
     if ((*next)->valToString() == ".") {
         const auto& ident = readIdentifier();
 
-        Symbol symbol;
-        if (symbolTable.present(ident->valToString(), SymbolKind::CLASS)) {
-            symbol = symbolTable.getSymbol(ident->valToString(), SymbolKind::CLASS);
-        } else {
-            symbol = symbolTable.create(ident, SymbolKind::VAR);
-        }
+        auto symbol = symbolTable.getSymbol(ident->valToString());
+        // if not exists then it's a className, if it does it's a varName
 
-        write(symbol.toString());
-        readSymbol('.');
+        readSymbol({'.'});
     }
 
     const auto& ident = readIdentifier();
-    write(symbolTable.create(ident, SymbolKind::SUBROUTINE).toString());
 
-    writeSymbol('(');
-    if (readSymbol(')') == nullptr) {
+    readSymbol({'('});
+    if (readSymbol({')'}) == nullptr) {
         compileExpressionList();
-        writeSymbol(')');
+        readSymbol({')'});
     }
-
-    indentLevel--;
-    write("</subroutineCall>");
 
     return true;
 };
