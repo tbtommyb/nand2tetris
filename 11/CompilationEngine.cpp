@@ -47,7 +47,7 @@ std::map<SymbolKind::Enum, Segment::Enum> kindSegmentMap = {
 std::map<char, std::string> opCommandMap = {
   { '+', "add" },
   { '-', "sub" },
-  { '*', "call Math.multiple 2" },
+  { '*', "call Math.multiply 2" },
   { '/', "call Math.divide 2" },
   { '<', "lt", },
   { '>', "gt" },
