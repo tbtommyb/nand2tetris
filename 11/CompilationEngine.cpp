@@ -44,6 +44,17 @@ std::map<SymbolKind::Enum, Segment::Enum> kindSegmentMap = {
     { SymbolKind::VAR, Segment::LOCAL },
 };
 
+std::map<char, std::string> opCommandMap = {
+  { '+', "add" },
+  { '-', "sub" },
+  { '*', "call Math.multiple 2" },
+  { '/', "call Math.divide 2" },
+  { '<', "lt", },
+  { '>', "gt" },
+  { '=', "eq" },
+  { '&', "and" },
+  { '|', "or" },
+};
 
 CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), vmWriter(out), out(out)
 {
@@ -73,6 +84,8 @@ bool CompilationEngine::compileClass()
     const auto& ident = readIdentifier();
 
     className = ident->valToString();
+
+    readSymbol({'{'});
 
     zeroOrMany([this] { return compileClassVarDec(); });
     zeroOrMany([this] { return compileSubroutineDec(); });
@@ -222,92 +235,92 @@ bool CompilationEngine::compileStatement()
     // letStatement | ifStatement | whileStatement | doStatement | returnStatement
 
     return oneOf(
-                 [this] { return compileLet(); },
-                 [this] { return compileIf(); },
-                 [this] { return compileWhile(); },
+                 // [this] { return compileLet(); },
+                 // [this] { return compileIf(); },
+                 // [this] { return compileWhile(); },
                  [this] { return compileDo(); },
                  [this] { return compileReturn(); }
                  );
 };
 
-bool CompilationEngine::compileLet()
-{
-    // 'let' varName ('[' expression ']')? '=' expression ';'
+// bool CompilationEngine::compileLet()
+// {
+//     // 'let' varName ('[' expression ']')? '=' expression ';'
 
-    if (!tokenMatches({"let"})) return false;
+//     if (!tokenMatches({"let"})) return false;
 
-    readKeyword({"let"});
-    const auto& ident = symbolTable.getSymbol(readIdentifier()->valToString());
+//     readKeyword({"let"});
+//     const auto& ident = symbolTable.getSymbol(readIdentifier()->valToString());
 
-    // zeroOrOnce([this] {
-    //         return writeSymbol('[') && compileExpression() && writeSymbol(']');
-    //     });
+//     // zeroOrOnce([this] {
+//     //         return writeSymbol('[') && compileExpression() && writeSymbol(']');
+//     //     });
 
-    readSymbol({'='});
-    compileExpression();
+//     readSymbol({'='});
+//     compileExpression();
 
-    auto segment = kindSegmentMap.at(ident->kind);
-    vmWriter.writePop(segment, ident->id);
+//     auto segment = kindSegmentMap.at(ident->kind);
+//     vmWriter.writePop(segment, ident->id);
 
-    readSymbol({';'});
+//     readSymbol({';'});
 
-    return true;
-};
+//     return true;
+// };
 
-bool CompilationEngine::compileIf()
-{
-    // 'if '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
+// bool CompilationEngine::compileIf()
+// {
+//     // 'if '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
 
-    if (!tokenMatches({"if"})) return false;
+//     if (!tokenMatches({"if"})) return false;
 
-    write("<ifStatement>");
-    indentLevel++;
+//     write("<ifStatement>");
+//     indentLevel++;
 
-    writeKeyword("if");
+//     writeKeyword("if");
 
-    writeSymbol('(');
-    compileExpression();
-    writeSymbol(')');
+//     writeSymbol('(');
+//     compileExpression();
+//     writeSymbol(')');
 
-    writeSymbol('{');
-    compileStatements();
-    writeSymbol('}');
+//     writeSymbol('{');
+//     compileStatements();
+//     writeSymbol('}');
 
-    zeroOrOnce([this] {
-            return writeKeyword("else") && writeSymbol('{') &&
-                compileStatements() && writeSymbol('}');
-        });
+//     zeroOrOnce([this] {
+//             return writeKeyword("else") && writeSymbol('{') &&
+//                 compileStatements() && writeSymbol('}');
+//         });
 
-    indentLevel--;
-    write("</ifStatement>");
+//     indentLevel--;
+//     write("</ifStatement>");
 
-    return true;
-};
+//     return true;
+// };
 
-bool CompilationEngine::compileWhile()
-{
-    // 'while' '(' expression ')' '{' statements '}'
+// bool CompilationEngine::compileWhile()
+// {
+//     // 'while' '(' expression ')' '{' statements '}'
 
-    if (!tokenMatches({"while"})) return false;
+//     if (!tokenMatches({"while"})) return false;
 
-    write("<whileStatement>");
-    indentLevel++;
+//     write("<whileStatement>");
+//     indentLevel++;
 
-    writeKeyword("while");
+//     writeKeyword("while");
 
-    writeSymbol('(');
-    compileExpression();
-    writeSymbol(')');
+//     writeSymbol('(');
+//     compileExpression();
+//     writeSymbol(')');
 
-    writeSymbol('{');
-    compileStatements();
-    writeSymbol('}');
+//     writeSymbol('{');
+//     compileStatements();
+//     writeSymbol('}');
 
-    indentLevel--;
-    write("</whileStatement>");
+//     indentLevel--;
+//     write("</whileStatement>");
 
-    return true;
-};
+//     return true;
+// };
 
 bool CompilationEngine::compileDo()
 {
@@ -315,17 +328,11 @@ bool CompilationEngine::compileDo()
 
     if (!tokenMatches({"do"})) return false;
 
-    write("<doStatement>");
-    indentLevel++;
-
-    writeKeyword("do");
+    readKeyword({"do"});
 
     compileSubroutineCall();
 
-    writeSymbol(';');
-
-    indentLevel--;
-    write("</doStatement>");
+    vmWriter.writePop(Segment::TEMP, 0);
 
     return true;
 };
@@ -336,19 +343,17 @@ bool CompilationEngine::compileReturn()
 
     if (!tokenMatches({"return"})) return false;
 
-    write("<returnStatement>");
-    indentLevel++;
-
-    writeKeyword("return");
+    readKeyword({"return"});
 
     if ((*token)->valToString() != ";") {
         zeroOrOnce([this] { return compileExpression(); });
-    };
+    } else {
+      vmWriter.writePush(Segment::CONST, 0);
+    }
 
-    writeSymbol(';');
+    vmWriter.writeReturn();
 
-    indentLevel--;
-    write("</returnStatement>");
+    readSymbol({';'});
 
     return true;
 };
@@ -359,10 +364,16 @@ bool CompilationEngine::compileExpression()
 
     compileTerm();
 
-    zeroOrMany([this] { return compileOp() && compileTerm(); });
-
-    indentLevel--;
-    write("</expression>");
+    zeroOrMany([this] {
+        const auto& op = readOp();
+        if (op != nullptr) {
+          compileTerm();
+          vmWriter.write(opCommandMap.at(op->getVal()));
+          token++;
+          return true;
+        }
+        return false;
+      });
 
     return true;
 };
@@ -373,33 +384,34 @@ bool CompilationEngine::compileTerm()
     // varName '[' expression ']' | subroutineCall |
     // '(' expression ')' | unaryOp term
 
-    write("<term>");
-    indentLevel++;
-
     oneOf(
-          [this] { return writeIntConst(); },
-          [this] { return writeStringConst(); },
+          [this] { return compileIntConst(); },
+          [this] { return compileStringConst(); },
           [this] { return compileKeywordConstant(); },
-          [this] {
-              auto tok = std::dynamic_pointer_cast<IdentifierToken>(*token);
-              if (tok == nullptr) { return false; }
+          // [this] {
+          //     auto tok = std::dynamic_pointer_cast<IdentifierToken>(*token);
+          //     if (tok == nullptr) { return false; }
 
-              auto next = std::next(token);
-              if ((*next)->valToString() == "[") {
-                  return writeIdentifier() && writeSymbol('[') && compileExpression() && writeSymbol(']');
+          //     auto next = std::next(token);
+          //     if ((*next)->valToString() == "[") {
+          //         return writeIdentifier() && writeSymbol('[') && compileExpression() && writeSymbol(']');
+          //     }
+          //     if (((*next)->valToString() == ".") || ((*next)->valToString() == "(")) {
+          //         return compileSubroutineCall();
+          //     } else {
+          //         return writeIdentifier();
+          //     }
+          // },
+          [this] {
+              if (readSymbol({'('}) != nullptr) {
+                  compileExpression();
+                  readSymbol({')'});
+                  return true;
               }
-              if (((*next)->valToString() == ".") || ((*next)->valToString() == "(")) {
-                  return compileSubroutineCall();
-              } else {
-                  return writeIdentifier();
-              }
+              return false;
           },
-          [this] { return writeSymbol('(') && compileExpression() && writeSymbol(')'); },
           [this] { return compileUnaryOp() && compileTerm(); }
           );
-
-    indentLevel--;
-    write("</term>");
 
     return true;
 };
@@ -409,88 +421,133 @@ bool CompilationEngine::compileSubroutineCall()
     // subroutineName '(' expressionList ')' | (className | varName)
     // '.' subroutineName '(' expressionList ')'
 
+    std::string typeName{};
+    std::string name{};
+    int numArgs = 0;
+
     auto next = std::next(token);
     if ((*next)->valToString() == ".") {
         const auto& ident = readIdentifier();
+        readSymbol({'.'});
 
         auto symbol = symbolTable.getSymbol(ident->valToString());
-        // if not exists then it's a className, if it does it's a varName
 
-        readSymbol({'.'});
+        if (symbol.get() == nullptr) {
+            // it's a class
+            typeName = ident->valToString();
+        } else {
+            typeName = symbol->type;
+        }
+        const auto& methodName = readIdentifier();
+        name = typeName + "." + methodName->valToString();
+
+    } else {
+      const auto& ident = readIdentifier();
+      numArgs = 1;
+      vmWriter.writePush(Segment::POINTER, 0);
+      name = className + "." + ident->valToString();
     }
-
-    const auto& ident = readIdentifier();
 
     readSymbol({'('});
     if (readSymbol({')'}) == nullptr) {
-        compileExpressionList();
+        numArgs += compileExpressionList();
         readSymbol({')'});
     }
 
+    vmWriter.writeCall(name, numArgs);
+
     return true;
 };
 
-bool CompilationEngine::compileExpressionList()
+int CompilationEngine::compileExpressionList()
 {
     // (expression (',' expression)* )?
 
-    write("<expressionList>");
-    indentLevel++;
-
-    zeroOrOnce([this] {
-            return compileExpression() &&
-                zeroOrMany([this] {
-                        return writeSymbol(',') && compileExpression();
-                    });
-        });
-
-    indentLevel--;
-    write("</expressionList>");
-
-    return true;
-};
-
-bool CompilationEngine::compileOp()
-{
-    // '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '='
-
-    const auto& op = readSymbol({'+', '-', '*', '/', '&', '|', '<', '>', '='});
-    vmWriter.write(op->valToString());
-    return true;
+    int numArgs = 0;
+    compileExpression();
+    numArgs++;
+    while (readSymbol({','}) != nullptr) {
+        compileExpression();
+        numArgs++;
+    }
+    return numArgs;
 };
 
 bool CompilationEngine::compileUnaryOp()
 {
     // '-' | '~'
 
-    return oneOf(
-                 [this] { return writeSymbol('~'); },
-                 [this] { return writeSymbol('-'); }
-                 );
+    const auto& op = readSymbol({'~', '-'});
+    vmWriter.write(opCommandMap.at(op->getVal()));
+    return true;
 };
 
 bool CompilationEngine::compileKeywordConstant()
 {
     // 'true'| 'false' | 'null' | 'this'
 
-    return oneOf(
-                 [this] { return writeKeyword("true"); },
-                 [this] { return writeKeyword("false"); },
-                 [this] { return writeKeyword("null"); },
-                 [this] { return writeKeyword("this"); }
-                 );
+    const auto& kw = readKeyword({"true", "false", "null", "this"});
+    if (kw->valToString() == "true") {
+      vmWriter.writePush(Segment::CONST, 1);
+        vmWriter.write("neg");
+    } else if (kw->valToString() == "false" || kw->valToString() == "null") {
+      vmWriter.writePush(Segment::CONST, 0);
+    } else {
+      vmWriter.writePush(Segment::POINTER, 0);
+    }
+    return true;
+};
+
+bool CompilationEngine::compileIntConst()
+{
+    const auto intTok = std::dynamic_pointer_cast<IntConstToken>(*token);
+    if (intTok == nullptr) {
+        throw CompilationError(expected("intConst", *token));
+    }
+
+    vmWriter.writePush(Segment::CONST, std::stoi(intTok->valToString()));
+
+    token++;
+
+    return true;
+};
+
+bool CompilationEngine::compileStringConst()
+{
+    auto strTok = std::dynamic_pointer_cast<StringToken>(*token);
+    if (strTok == nullptr) {
+        throw CompilationError(expected("stringConst", *token));
+    }
+
+    auto string = strTok->toString();
+    vmWriter.writePush(Segment::CONST, string.length());
+    vmWriter.writeCall("String.new", 1);
+    for (const char& c : string) {
+      vmWriter.writePush(Segment::CONST, int(c));
+        vmWriter.writeCall("String.appendChar", 2);
+    }
+    token++;
+
+    return true;
 };
 
 // Private helper methods
 // ======================
+
+std::shared_ptr<SymbolToken> CompilationEngine::readOp()
+{
+    // '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '='
+
+    return readSymbol({'+', '-', '*', '/', '&', '|', '<', '>', '='});
+};
 
 std::shared_ptr<Token> CompilationEngine::readType()
 {
     // 'int' | 'char' | 'boolean' | className
 
     return oneOfToken(
-                      [this]() { return readKeyword({"int", "char", "boolean"}); },
-                      [this]() { return readIdentifier(); }
+                      [this] { return readKeyword({"int", "char", "boolean"}); },
+                      [this] { return readIdentifier(); }
                       );
 };
 

@@ -30,11 +30,13 @@ public:
     bool compileExpression();
     bool compileTerm();
     bool compileSubroutineCall();
-    bool compileExpressionList();
-    bool compileOp();
+    int compileExpressionList();
     bool compileUnaryOp();
     bool compileKeywordConstant();
+    bool compileIntConst();
+    bool compileStringConst();
 private:
+    std::shared_ptr<SymbolToken> readOp();
     std::shared_ptr<Token> readType();
     std::shared_ptr<KeywordToken> readKeyword(const std::vector<std::string>& options);
     bool writeKeyword(const std::string& kw);
