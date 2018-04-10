@@ -409,20 +409,29 @@ bool CompilationEngine::compileTerm()
           [this] { return compileIntConst(); },
           [this] { return compileStringConst(); },
           [this] { return compileKeywordConstant(); },
-          // [this] {
-          //     auto tok = std::dynamic_pointer_cast<IdentifierToken>(*token);
-          //     if (tok == nullptr) { return false; }
+          [this] {
+              auto identTok = std::dynamic_pointer_cast<IdentifierToken>(*token);
+              if (identTok == nullptr) { return false; }
+              const auto& ident = symbolTable.getSymbol(identTok->valToString());
+              auto segment = kindSegmentMap.at(ident->kind);
 
-          //     auto next = std::next(token);
-          //     if ((*next)->valToString() == "[") {
-          //         return writeIdentifier() && writeSymbol('[') && compileExpression() && writeSymbol(']');
-          //     }
-          //     if (((*next)->valToString() == ".") || ((*next)->valToString() == "(")) {
-          //         return compileSubroutineCall();
-          //     } else {
-          //         return writeIdentifier();
-          //     }
-          // },
+              if (readSymbol({'['}) != nullptr) {
+                vmWriter.writePush(segment, ident->id);
+                compileExpression();
+                readSymbol({']'});
+                vmWriter.write("add");
+                vmWriter.writePop(Segment::POINTER, 1);
+                vmWriter.writePush(Segment::THAT, 0);
+
+                return true;
+              } else if (readSymbol({'.', '('}) != nullptr) {
+                // TODO - do I need to pass in ident?
+                return compileSubroutineCall();
+              } else {
+                vmWriter.writePush(segment, ident->id);
+              }
+              return true;
+          },
           [this] {
               if (readSymbol({'('}) != nullptr) {
                   compileExpression();
