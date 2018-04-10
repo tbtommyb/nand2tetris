@@ -172,6 +172,7 @@ bool CompilationEngine::compileVarDec()
 {
     // 'var' type varName (',' varName)* ';'
 
+    std::cout << "entering compileVarDec token: " << (*token)->valToString() << std::endl;
     if (!tokenMatches({"var"})) return false;
 
     const auto& kw = readKeyword({"var"});
@@ -186,6 +187,7 @@ bool CompilationEngine::compileVarDec()
     }
 
     readSymbol({';'});
+    std::cout << "leaving compileVarDec token: " << (*token)->valToString() << std::endl;
 
     return true;
 };
@@ -194,6 +196,7 @@ bool CompilationEngine::compileSubroutineBody(const std::shared_ptr<Token> name,
 {
     // '{' varDec* statements '}'
 
+    // Change this pattern to readSymbol
     if (!tokenMatches({"{"})) return false;
 
     readSymbol({'{'});
@@ -223,6 +226,9 @@ bool CompilationEngine::compileStatements()
 {
     // statement*
 
+    // TODO logging semicolon so not incrementing token somewhere
+    std::cout << "in compile statements" << std::endl;
+    std::cout << (*token)->valToString() << std::endl;
     if (!tokenMatches({"let", "if", "else", "while", "do", "return"})) return false;
 
     zeroOrMany([this] { return compileStatement(); });
@@ -235,9 +241,9 @@ bool CompilationEngine::compileStatement()
     // letStatement | ifStatement | whileStatement | doStatement | returnStatement
 
     return oneOf(
-                 [this] { return compileLet(); },
-                 [this] { return compileIf(); },
-                 [this] { return compileWhile(); },
+                 // [this] { return compileLet(); },
+                 // [this] { return compileIf(); },
+                 // [this] { return compileWhile(); },
                  [this] { return compileDo(); },
                  [this] { return compileReturn(); }
                  );
@@ -347,6 +353,7 @@ bool CompilationEngine::compileDo()
 {
     // 'do' subroutineCall ';'
 
+  std::cout << (*token)->valToString() << std::endl;
     if (!tokenMatches({"do"})) return false;
 
     readKeyword({"do"});
