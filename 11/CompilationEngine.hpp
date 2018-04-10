@@ -39,24 +39,16 @@ private:
     std::shared_ptr<SymbolToken> readOp();
     std::shared_ptr<Token> readType();
     std::shared_ptr<KeywordToken> readKeyword(const std::vector<std::string>& options);
-    bool writeKeyword(const std::string& kw);
     std::shared_ptr<IdentifierToken> readIdentifier();
-    bool writeIdentifier();
     std::shared_ptr<SymbolToken> readSymbol(const std::vector<char16_t>& options);
-    bool writeSymbol(char16_t sym);
-    bool writeIntConst();
-    bool writeStringConst();
     bool tokenMatches(std::vector<std::string>);
     bool zeroOrOnce(const std::function<void(void)>&);
     bool zeroOrMany(const std::function<bool(void)>&);
     const std::string expected(const std::string&, const std::shared_ptr<Token>&);
-    bool write(const std::string& val);
     std::vector<std::shared_ptr<Token>>::iterator token;
     VMWriter vmWriter;
     std::string className;
     SymbolTable symbolTable;
-    std::ostream& out;
-    int indentLevel, indent;
 };
 
 #endif

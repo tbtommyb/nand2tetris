@@ -56,7 +56,7 @@ std::map<char, std::string> opCommandMap = {
   { '|', "or" },
 };
 
-CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), vmWriter(out), out(out)
+CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), vmWriter(out)
 {
     symbolTable = SymbolTable{};
 }
@@ -367,13 +367,13 @@ bool CompilationEngine::compileExpression()
     zeroOrMany([this] {
         const auto& op = readOp();
         if (op != nullptr) {
-          compileTerm();
-          vmWriter.write(opCommandMap.at(op->getVal()));
-          token++;
-          return true;
+            compileTerm();
+            vmWriter.write(opCommandMap.at(op->getVal()));
+            token++;
+            return true;
         }
         return false;
-      });
+    });
 
     return true;
 };
@@ -488,12 +488,12 @@ bool CompilationEngine::compileKeywordConstant()
 
     const auto& kw = readKeyword({"true", "false", "null", "this"});
     if (kw->valToString() == "true") {
-      vmWriter.writePush(Segment::CONST, 1);
+        vmWriter.writePush(Segment::CONST, 1);
         vmWriter.write("neg");
     } else if (kw->valToString() == "false" || kw->valToString() == "null") {
-      vmWriter.writePush(Segment::CONST, 0);
+        vmWriter.writePush(Segment::CONST, 0);
     } else {
-      vmWriter.writePush(Segment::POINTER, 0);
+        vmWriter.writePush(Segment::POINTER, 0);
     }
     return true;
 };
@@ -568,25 +568,6 @@ std::shared_ptr<KeywordToken> CompilationEngine::readKeyword(const std::vector<s
     throw CompilationError(expected("keyword", *token));
 };
 
-bool CompilationEngine::writeKeyword(const std::string& kw)
-{
-    auto kwToken = std::dynamic_pointer_cast<KeywordToken>(*token);
-    if (kwToken == nullptr) {
-        std::stringstream ss{};
-        ss << "keyword '" << kw;
-        throw CompilationError(expected(ss.str(), *token));
-    }
-
-    if (kwToken->getVal() == kw) {
-        write(kwToken->toString());
-        token++;
-    } else {
-        throw CompilationError(expected(kw, *token));
-    }
-
-    return true;
-};
-
 std::shared_ptr<IdentifierToken> CompilationEngine::readIdentifier()
 {
     auto identToken = std::dynamic_pointer_cast<IdentifierToken>(*token);
@@ -596,19 +577,6 @@ std::shared_ptr<IdentifierToken> CompilationEngine::readIdentifier()
 
     token++;
     return identToken;
-};
-
-bool CompilationEngine::writeIdentifier()
-{
-    auto identToken = std::dynamic_pointer_cast<IdentifierToken>(*token);
-    if (identToken == nullptr) {
-        throw CompilationError(expected("identifier", *token));
-    }
-
-    write(identToken->toString());
-    token++;
-
-    return true;
 };
 
 std::shared_ptr<SymbolToken> CompilationEngine::readSymbol(const std::vector<char16_t>& options)
@@ -626,53 +594,6 @@ std::shared_ptr<SymbolToken> CompilationEngine::readSymbol(const std::vector<cha
     }
 
     throw CompilationError(expected("symbol", *token));
-};
-
-bool CompilationEngine::writeSymbol(char16_t sym)
-{
-    std::string expect(1, sym);
-
-    auto symbolToken = std::dynamic_pointer_cast<SymbolToken>(*token);
-    if (symbolToken == nullptr) {
-        std::stringstream ss{};
-        ss << "symbol '" << expect;
-        throw CompilationError(expected(ss.str(), *token));
-    }
-
-    if (symbolToken->getVal() == sym) {
-        write(symbolToken->toString());
-        token++;
-    } else {
-        throw CompilationError(expected(expect, *token));
-    }
-
-    return true;
-};
-
-bool CompilationEngine::writeIntConst()
-{
-    auto intToken = std::dynamic_pointer_cast<IntConstToken>(*token);
-    if (intToken == nullptr) {
-        throw CompilationError(expected("intConst", *token));
-    }
-
-    write(intToken->toString());
-    token++;
-
-    return true;
-};
-
-bool CompilationEngine::writeStringConst()
-{
-    auto stringToken = std::dynamic_pointer_cast<StringToken>(*token);
-    if (stringToken == nullptr) {
-        throw CompilationError(expected("stringConst", *token));
-    }
-
-    write(stringToken->toString());
-    token++;
-
-    return true;
 };
 
 bool CompilationEngine::tokenMatches(std::vector<std::string> options)
@@ -705,11 +626,4 @@ const std::string CompilationEngine::expected(const std::string& expect, const s
     std::stringstream ss{};
     ss << "l" << got->getLineNumber() << ": expected " << expect << "', received '" << got->valToString() << "'" << std::endl;
     return ss.str();
-};
-
-bool CompilationEngine::write(const std::string& val)
-{
-    std::string indentation(indentLevel * indent, ' ');
-    out << indentation << val << std::endl;
-    return out.good();
 };
