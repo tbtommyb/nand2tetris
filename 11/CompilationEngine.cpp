@@ -114,6 +114,7 @@ bool CompilationEngine::compileClassVarDec()
     auto symbol = symbolTable.addSymbol(ident, type, kw);
 
     while(tokenMatches({","})) {
+        token++;
         const auto& ident = readIdentifier();
         auto symbol = symbolTable.addSymbol(ident, type, kw);
     }
@@ -375,6 +376,7 @@ bool CompilationEngine::compileDo()
 
     compileSubroutineCall();
 
+    readSymbol({';'});
     vmWriter.writePop(Segment::TEMP, 0);
 
     return true;
@@ -497,6 +499,9 @@ bool CompilationEngine::compileSubroutineCall()
             typeName = ident->valToString();
         } else {
             typeName = symbol->type;
+            auto segment = kindSegmentMap.at(symbol->kind);
+            numArgs += 1;
+            vmWriter.writePush(segment, symbol->id);
         }
         const auto& methodName = readIdentifier();
         name = typeName + "." + methodName->valToString();
@@ -509,12 +514,11 @@ bool CompilationEngine::compileSubroutineCall()
     }
 
     readSymbol({'('});
-    if ((*token)->valToString() != ")") {
+    if (!tokenMatches({")"})) {
         numArgs += compileExpressionList();
-        readSymbol({')'});
     }
 
-    readSymbol({';'});
+    readSymbol({')'});
 
     vmWriter.writeCall(name, numArgs);
 
