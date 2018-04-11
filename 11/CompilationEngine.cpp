@@ -156,13 +156,14 @@ bool CompilationEngine::compileParameterList()
 
     if (!std::dynamic_pointer_cast<KeywordToken>(*token)) return false;
 
-    if (readSymbol({')'}) == nullptr) {
+    if ((*token)->valToString() != ")") {
         const auto& type = readType();
         const auto& ident = readIdentifier();
 
         symbolTable.addSymbol(ident, type, SymbolKind::ARGUMENT);
 
-        while (readSymbol({','}) != nullptr) {
+        while ((*token)->valToString() == ",") {
+            token++;
             const auto& type = readType();
             const auto& ident = readIdentifier();
 
@@ -421,25 +422,30 @@ bool CompilationEngine::compileTerm()
           [this] {
               auto identTok = std::dynamic_pointer_cast<IdentifierToken>(*token);
               if (identTok == nullptr) { return false; }
-              // TODO handle class name (not in symbol table) here
+              token++;
+
+              if (readSymbol({'.', '('}) != nullptr) {
+                  // TODO - do I need to pass in ident? Hack to decrement iterator
+                  token--;
+                  token--;
+                  return compileSubroutineCall();
+              }
+
               const auto& ident = symbolTable.getSymbol(identTok->valToString());
               auto segment = kindSegmentMap.at(ident->kind);
 
               if (readSymbol({'['}) != nullptr) {
-                vmWriter.writePush(segment, ident->id);
-                compileExpression();
-                readSymbol({']'});
-                vmWriter.write("add");
-                vmWriter.writePop(Segment::POINTER, 1);
-                vmWriter.writePush(Segment::THAT, 0);
+                  vmWriter.writePush(segment, ident->id);
+                  compileExpression();
+                  readSymbol({']'});
+                  vmWriter.write("add");
+                  vmWriter.writePop(Segment::POINTER, 1);
+                  vmWriter.writePush(Segment::THAT, 0);
 
-                return true;
-              } else if (readSymbol({'.', '('}) != nullptr) {
-                // TODO - do I need to pass in ident?
-                return compileSubroutineCall();
-              } else {
-                vmWriter.writePush(segment, ident->id);
+                  return true;
               }
+
+              vmWriter.writePush(segment, ident->id);
               return true;
           },
           [this] {
