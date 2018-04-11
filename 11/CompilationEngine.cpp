@@ -255,25 +255,33 @@ bool CompilationEngine::compileLet()
 {
     // 'let' varName ('[' expression ']')? '=' expression ';'
 
+    std::cout << (*token)->valToString() << std::endl;
     if (!tokenMatches({"let"})) return false;
 
     bool arrayAccess = false;
 
+    std::cout << "1" << std::endl;
     readKeyword({"let"});
     const auto& ident = symbolTable.getSymbol(readIdentifier()->valToString());
     auto segment = kindSegmentMap.at(ident->kind);
 
-    if (readSymbol({'['}) != nullptr) {
-      arrayAccess = true;
-      vmWriter.writePush(segment, ident->id);
-      compileExpression();
-      readSymbol({']'});
-      vmWriter.write("add");
+    std::cout << "2" << std::endl;
+    if ((*token)->valToString() == "[") {
+    std::cout << "3" << std::endl;
+        token++;
+        arrayAccess = true;
+        vmWriter.writePush(segment, ident->id);
+        compileExpression();
+    std::cout << "4" << std::endl;
+        readSymbol({']'});
+        vmWriter.write("add");
     }
 
+    std::cout << "5" << std::endl;
     readSymbol({'='});
     compileExpression();
 
+    std::cout << "6" << std::endl;
     if (arrayAccess) {
         vmWriter.writePop(Segment::TEMP, 1);
         vmWriter.writePop(Segment::POINTER, 1);
