@@ -61,6 +61,9 @@ std::map<char, std::string> unaryOpCommandMap = {
     { '~', "not" },
 };
 
+const std::vector<char16_t> opList = {'+', '-', '*', '/', '&', '|', '<', '>', '='};
+const std::vector<std::string> opStringList = {"+", "-", "*", "/", "&", "|", "<", ">", "="};
+
 CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), vmWriter(out), labelCount(0)
 {
     symbolTable = SymbolTable{};
@@ -129,6 +132,7 @@ bool CompilationEngine::compileSubroutineDec()
     if (!tokenMatches({"constructor", "function", "method"})) return false;
 
     symbolTable.startSubroutine();
+    vmWriter.write("// Compiling subroutine");
 
     const auto& kw = readKeyword({"constructor", "function", "method"});
     if (kw->valToString() == "method") {
@@ -146,6 +150,7 @@ bool CompilationEngine::compileSubroutineDec()
     readSymbol({')'});
 
     compileSubroutineBody(ident, kw);
+    vmWriter.write("// End subroutine");
 
     return true;
 };
@@ -204,6 +209,7 @@ bool CompilationEngine::compileSubroutineBody(const std::shared_ptr<Token> name,
     // Change this pattern to readSymbol
     if (!tokenMatches({"{"})) return false;
 
+    vmWriter.write("// Compiling subroutine body");
     readSymbol({'{'});
 
     zeroOrMany([this] { return compileVarDec(); });
@@ -223,6 +229,7 @@ bool CompilationEngine::compileSubroutineBody(const std::shared_ptr<Token> name,
     compileStatements();
 
     readSymbol({'}'});
+    vmWriter.write("// End subroutine body");
 
     return true;
 };
@@ -260,6 +267,7 @@ bool CompilationEngine::compileLet()
 
     bool arrayAccess = false;
 
+    vmWriter.write("// Compiling let");
     readKeyword({"let"});
     const auto& ident = symbolTable.getSymbol(readIdentifier()->valToString());
     auto segment = kindSegmentMap.at(ident->kind);
@@ -275,6 +283,7 @@ bool CompilationEngine::compileLet()
 
     readSymbol({'='});
     compileExpression();
+    readSymbol({';'});
 
     if (arrayAccess) {
         vmWriter.writePop(Segment::TEMP, 1);
@@ -285,8 +294,6 @@ bool CompilationEngine::compileLet()
         vmWriter.writePop(segment, ident->id);
     }
 
-    readSymbol({';'});
-
     return true;
 };
 
@@ -296,6 +303,7 @@ bool CompilationEngine::compileIf()
 
     if (!tokenMatches({"if"})) return false;
 
+    vmWriter.write("// Compiling if");
     readKeyword({"if"});
     auto endLabel = newLabel();
 
@@ -315,6 +323,8 @@ bool CompilationEngine::compileIf()
     vmWriter.writeLabel(notLabel);
 
     if (tokenMatches({"else"})) {
+        token++;
+        vmWriter.write("// Compiling else");
         readSymbol({'{'});
         compileStatements();
         readSymbol({'}'});
@@ -331,6 +341,7 @@ bool CompilationEngine::compileWhile()
 
     if (!tokenMatches({"while"})) return false;
 
+    vmWriter.write("// Compiling while");
     readKeyword({"while"});
     auto topLabel = newLabel();
     vmWriter.writeLabel(topLabel);
@@ -359,6 +370,7 @@ bool CompilationEngine::compileDo()
 
     if (!tokenMatches({"do"})) return false;
 
+    vmWriter.write("// Compiling do");
     readKeyword({"do"});
 
     compileSubroutineCall();
@@ -374,6 +386,7 @@ bool CompilationEngine::compileReturn()
 
     if (!tokenMatches({"return"})) return false;
 
+    vmWriter.write("// Compiling return");
     readKeyword({"return"});
 
     if (!tokenMatches({";"})) {
@@ -396,11 +409,11 @@ bool CompilationEngine::compileExpression()
     compileTerm();
 
     zeroOrMany([this] {
-        const auto& op = readOp();
-        if (op != nullptr) {
+        if (tokenMatches(opStringList)) {
+            const auto& op = readSymbol(opList);
             compileTerm();
             vmWriter.write(opCommandMap.at(op->getVal()));
-            token++;
+            // token++;
             return true;
         }
         return false;
@@ -420,21 +433,31 @@ bool CompilationEngine::compileTerm()
           [this] { return compileStringConst(); },
           [this] { return compileKeywordConstant(); },
           [this] {
+              if (tokenMatches({"("})) {
+                  token++;
+                  compileExpression();
+                  readSymbol({')'});
+                  return true;
+              }
+              return false;
+          },
+          [this] { return compileUnaryOp(); },
+          [this] {
               auto identTok = std::dynamic_pointer_cast<IdentifierToken>(*token);
               if (identTok == nullptr) { return false; }
-              token++;
 
-              if (readSymbol({'.', '('}) != nullptr) {
-                  // TODO - do I need to pass in ident? Hack to decrement iterator
-                  token--;
-                  token--;
+              const auto& next = std::next(token);
+              if ((*next)->valToString() == "." || (*next)->valToString() == "(") {
+                  // TODO - do I need to pass in ident?
                   return compileSubroutineCall();
               }
 
               const auto& ident = symbolTable.getSymbol(identTok->valToString());
               auto segment = kindSegmentMap.at(ident->kind);
 
-              if (readSymbol({'['}) != nullptr) {
+              token++;
+              if (tokenMatches({"["})) {
+                  token++;
                   vmWriter.writePush(segment, ident->id);
                   compileExpression();
                   readSymbol({']'});
@@ -447,17 +470,7 @@ bool CompilationEngine::compileTerm()
 
               vmWriter.writePush(segment, ident->id);
               return true;
-          },
-          [this] {
-              if (readSymbol({'('}) != nullptr) {
-                  compileExpression();
-                  readSymbol({')'});
-                  return true;
-              }
-              return false;
-          },
-          [this] { return compileUnaryOp(); }
-          );
+          });
 
     return true;
 };
@@ -584,13 +597,6 @@ bool CompilationEngine::compileStringConst()
 
 // Private helper methods
 // ======================
-
-std::shared_ptr<SymbolToken> CompilationEngine::readOp()
-{
-    // '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '='
-
-    return readSymbol({'+', '-', '*', '/', '&', '|', '<', '>', '='});
-};
 
 std::shared_ptr<Token> CompilationEngine::readType()
 {

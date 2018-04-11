@@ -36,7 +36,6 @@ public:
     bool compileIntConst();
     bool compileStringConst();
 private:
-    std::shared_ptr<SymbolToken> readOp();
     std::shared_ptr<Token> readType();
     std::shared_ptr<KeywordToken> readKeyword(const std::vector<std::string>& options);
     std::shared_ptr<IdentifierToken> readIdentifier();
