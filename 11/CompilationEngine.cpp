@@ -74,7 +74,7 @@ bool CompilationEngine::compile()
     try {
         compileClass();
     } catch (const CompilationError& e) {
-        std::cerr << e.what() << std::endl;
+        std::cerr << "Compilation error: " << e.what() << std::endl;
         return false;
     }
 
@@ -110,7 +110,7 @@ bool CompilationEngine::compileClassVarDec()
 
     auto symbol = symbolTable.addSymbol(ident, type, kw);
 
-    while(readSymbol({','}) != nullptr) {
+    while(tokenMatches({","})) {
         const auto& ident = readIdentifier();
         auto symbol = symbolTable.addSymbol(ident, type, kw);
     }
@@ -156,13 +156,13 @@ bool CompilationEngine::compileParameterList()
 
     if (!std::dynamic_pointer_cast<KeywordToken>(*token)) return false;
 
-    if ((*token)->valToString() != ")") {
+    if (!tokenMatches({")"})) {
         const auto& type = readType();
         const auto& ident = readIdentifier();
 
         symbolTable.addSymbol(ident, type, SymbolKind::ARGUMENT);
 
-        while ((*token)->valToString() == ",") {
+        while (tokenMatches({","})) {
             token++;
             const auto& type = readType();
             const auto& ident = readIdentifier();
@@ -186,13 +186,13 @@ bool CompilationEngine::compileVarDec()
 
     symbolTable.addSymbol(ident, type, kw);
 
-    while ((*token)->valToString() == ",") {
+    while (tokenMatches({","})) {
         token++;
         const auto& ident = readIdentifier();
         symbolTable.addSymbol(ident, type, kw);
     }
 
-    const auto symbol = readSymbol({';'});
+    readSymbol({';'});
 
     return true;
 };
@@ -264,7 +264,7 @@ bool CompilationEngine::compileLet()
     const auto& ident = symbolTable.getSymbol(readIdentifier()->valToString());
     auto segment = kindSegmentMap.at(ident->kind);
 
-    if ((*token)->valToString() == "[") {
+    if (tokenMatches({"["})) {
         token++;
         arrayAccess = true;
         vmWriter.writePush(segment, ident->id);
@@ -314,7 +314,7 @@ bool CompilationEngine::compileIf()
     vmWriter.writeGoto(endLabel);
     vmWriter.writeLabel(notLabel);
 
-    if (readKeyword({"else"}) != nullptr) {
+    if (tokenMatches({"else"})) {
         readSymbol({'{'});
         compileStatements();
         readSymbol({'}'});
@@ -376,10 +376,10 @@ bool CompilationEngine::compileReturn()
 
     readKeyword({"return"});
 
-    if ((*token)->valToString() != ";") {
+    if (!tokenMatches({";"})) {
         zeroOrOnce([this] { return compileExpression(); });
     } else {
-      vmWriter.writePush(Segment::CONST, 0);
+        vmWriter.writePush(Segment::CONST, 0);
     }
 
     vmWriter.writeReturn();
@@ -515,7 +515,7 @@ int CompilationEngine::compileExpressionList()
     int numArgs = 0;
     compileExpression();
     numArgs++;
-    while ((*token)->valToString() == ",") {
+    while (tokenMatches({","})) {
         token++;
         compileExpression();
         numArgs++;
@@ -634,7 +634,7 @@ std::shared_ptr<SymbolToken> CompilationEngine::readSymbol(const std::vector<cha
 {
     auto symbolToken = std::dynamic_pointer_cast<SymbolToken>(*token);
     if (symbolToken == nullptr) {
-        return nullptr;
+        throw CompilationError(expected("symbol", *token));
     }
 
     for (auto& option : options) {
@@ -675,7 +675,7 @@ bool CompilationEngine::zeroOrMany(const std::function<bool(void)>& F)
 const std::string CompilationEngine::expected(const std::string& expect, const std::shared_ptr<Token>& got)
 {
     std::stringstream ss{};
-    ss << "l" << got->getLineNumber() << ": expected " << expect << "', received '" << got->valToString() << "'" << std::endl;
+    ss << "l" << got->getLineNumber() << ": expected " << expect << ", received '" << got->valToString() << "'" << std::endl;
     return ss.str();
 };
 
