@@ -45,15 +45,20 @@ std::map<SymbolKind::Enum, Segment::Enum> kindSegmentMap = {
 };
 
 std::map<char, std::string> opCommandMap = {
-  { '+', "add" },
-  { '-', "sub" },
-  { '*', "call Math.multiply 2" },
-  { '/', "call Math.divide 2" },
-  { '<', "lt", },
-  { '>', "gt" },
-  { '=', "eq" },
-  { '&', "and" },
-  { '|', "or" },
+    { '+', "add" },
+    { '-', "sub" },
+    { '*', "call Math.multiply 2" },
+    { '/', "call Math.divide 2" },
+    { '<', "lt", },
+    { '>', "gt" },
+    { '=', "eq" },
+    { '&', "and" },
+    { '|', "or" },
+};
+
+std::map<char, std::string> unaryOpCommandMap = {
+    { '-', "neg" },
+    { '~', "not" },
 };
 
 CompilationEngine::CompilationEngine(TokenList& tokens, std::ostream& out) : token(tokens.begin()), vmWriter(out), labelCount(0)
@@ -172,7 +177,6 @@ bool CompilationEngine::compileVarDec()
 {
     // 'var' type varName (',' varName)* ';'
 
-    std::cout << "entering compileVarDec token: " << (*token)->valToString() << std::endl;
     if (!tokenMatches({"var"})) return false;
 
     const auto& kw = readKeyword({"var"});
@@ -181,13 +185,13 @@ bool CompilationEngine::compileVarDec()
 
     symbolTable.addSymbol(ident, type, kw);
 
-    while (readSymbol({','}) != nullptr) {
+    while ((*token)->valToString() == ",") {
+        token++;
         const auto& ident = readIdentifier();
         symbolTable.addSymbol(ident, type, kw);
     }
 
-    readSymbol({';'});
-    std::cout << "leaving compileVarDec token: " << (*token)->valToString() << std::endl;
+    const auto symbol = readSymbol({';'});
 
     return true;
 };
@@ -227,8 +231,6 @@ bool CompilationEngine::compileStatements()
     // statement*
 
     // TODO logging semicolon so not incrementing token somewhere
-    std::cout << "in compile statements" << std::endl;
-    std::cout << (*token)->valToString() << std::endl;
     if (!tokenMatches({"let", "if", "else", "while", "do", "return"})) return false;
 
     zeroOrMany([this] { return compileStatement(); });
@@ -241,9 +243,9 @@ bool CompilationEngine::compileStatement()
     // letStatement | ifStatement | whileStatement | doStatement | returnStatement
 
     return oneOf(
-                 // [this] { return compileLet(); },
-                 // [this] { return compileIf(); },
-                 // [this] { return compileWhile(); },
+                 [this] { return compileLet(); },
+                 [this] { return compileIf(); },
+                 [this] { return compileWhile(); },
                  [this] { return compileDo(); },
                  [this] { return compileReturn(); }
                  );
@@ -353,7 +355,6 @@ bool CompilationEngine::compileDo()
 {
     // 'do' subroutineCall ';'
 
-  std::cout << (*token)->valToString() << std::endl;
     if (!tokenMatches({"do"})) return false;
 
     readKeyword({"do"});
@@ -447,7 +448,7 @@ bool CompilationEngine::compileTerm()
               }
               return false;
           },
-          [this] { return compileUnaryOp() && compileTerm(); }
+          [this] { return compileUnaryOp(); }
           );
 
     return true;
@@ -462,6 +463,7 @@ bool CompilationEngine::compileSubroutineCall()
     std::string name{};
     int numArgs = 0;
 
+    // TODO increment num args correctly throughout
     auto next = std::next(token);
     if ((*next)->valToString() == ".") {
         const auto& ident = readIdentifier();
@@ -479,14 +481,14 @@ bool CompilationEngine::compileSubroutineCall()
         name = typeName + "." + methodName->valToString();
 
     } else {
-      const auto& ident = readIdentifier();
-      numArgs = 1;
-      vmWriter.writePush(Segment::POINTER, 0);
-      name = className + "." + ident->valToString();
+        const auto& ident = readIdentifier();
+        numArgs = 1;
+        vmWriter.writePush(Segment::POINTER, 0);
+        name = className + "." + ident->valToString();
     }
 
     readSymbol({'('});
-    if (readSymbol({')'}) == nullptr) {
+    if ((*token)->valToString() != ")") {
         numArgs += compileExpressionList();
         readSymbol({')'});
     }
@@ -503,7 +505,8 @@ int CompilationEngine::compileExpressionList()
     int numArgs = 0;
     compileExpression();
     numArgs++;
-    while (readSymbol({','}) != nullptr) {
+    while ((*token)->valToString() == ",") {
+        token++;
         compileExpression();
         numArgs++;
     }
@@ -512,10 +515,11 @@ int CompilationEngine::compileExpressionList()
 
 bool CompilationEngine::compileUnaryOp()
 {
-    // '-' | '~'
+    // '-' | '~' term
 
     const auto& op = readSymbol({'~', '-'});
-    vmWriter.write(opCommandMap.at(op->getVal()));
+    compileTerm();
+    vmWriter.write(unaryOpCommandMap.at(op->getVal()));
     return true;
 };
 
