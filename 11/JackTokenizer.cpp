@@ -121,6 +121,7 @@ TokenList JackTokenizer::getTokenList()
                     while (it != currentLine.end() && *it != '\"') {
                         token.append(1, *it++);
                     }
+
                     token.append(1, *it++);
                 } else {
                     while (it != currentLine.end() && !isspace(*it) && !isSymbol(*it)) {
@@ -148,7 +149,9 @@ std::shared_ptr<Token> JackTokenizer::nextToken(const std::string& input)
         return std::make_shared<IntConstToken>(std::stoi(input), lineNumber);
     }
     if (isString(input)) {
-        return std::make_shared<StringToken>(input, lineNumber);
+        // strip double quotes
+        const auto& str = input.substr(1, input.size() - 2);
+        return std::make_shared<StringToken>(str, lineNumber);
     }
     if (isIdentifier(input)) {
         return std::make_shared<IdentifierToken>(input, lineNumber);

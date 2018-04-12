@@ -587,7 +587,7 @@ bool CompilationEngine::compileStringConst()
         throw CompilationError(expected("stringConst", *token));
     }
 
-    auto string = strTok->toString();
+    auto string = strTok->getVal();
     vmWriter.writePush(Segment::CONST, string.length());
     vmWriter.writeCall("String.new", 1);
     for (const char& c : string) {
