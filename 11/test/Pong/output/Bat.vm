@@ -1,0 +1,290 @@
+// Compiling subroutine  
+// Compiling subroutine body  
+function Bat.new 0
+push constant 5
+call Memory.alloc 1
+pop pointer 0
+// Compiling let  
+push argument 0
+pop this 0
+// Compiling let  
+push argument 1
+pop this 1
+// Compiling let  
+push argument 2
+pop this 2
+// Compiling let  
+push argument 3
+pop this 3
+// Compiling let  
+push constant 2
+pop this 4
+// Compiling do  
+push pointer 0
+call Bat.show 1
+pop temp 0
+// Compiling return  
+push pointer 0
+return  
+// End subroutine body  
+// End subroutine  
+// Compiling subroutine  
+// Compiling subroutine body  
+function Bat.dispose 0
+push argument 0
+pop pointer 0
+// Compiling do  
+push pointer 0
+call Memory.deAlloc 1
+pop temp 0
+// Compiling return  
+push constant 0
+return  
+// End subroutine body  
+// End subroutine  
+// Compiling subroutine  
+// Compiling subroutine body  
+function Bat.show 0
+push argument 0
+pop pointer 0
+// Compiling do  
+push constant 1
+neg  
+call Screen.setColor 1
+pop temp 0
+// Compiling do  
+push pointer 0
+call Bat.draw 1
+pop temp 0
+// Compiling return  
+push constant 0
+return  
+// End subroutine body  
+// End subroutine  
+// Compiling subroutine  
+// Compiling subroutine body  
+function Bat.hide 0
+push argument 0
+pop pointer 0
+// Compiling do  
+push constant 0
+call Screen.setColor 1
+pop temp 0
+// Compiling do  
+push pointer 0
+call Bat.draw 1
+pop temp 0
+// Compiling return  
+push constant 0
+return  
+// End subroutine body  
+// End subroutine  
+// Compiling subroutine  
+// Compiling subroutine body  
+function Bat.draw 0
+push argument 0
+pop pointer 0
+// Compiling do  
+push this 0
+push this 1
+push this 0
+push this 2
+add  
+push this 1
+push this 3
+add  
+call Screen.drawRectangle 4
+pop temp 0
+// Compiling return  
+push constant 0
+return  
+// End subroutine body  
+// End subroutine  
+// Compiling subroutine  
+// Compiling subroutine body  
+function Bat.setDirection 0
+push argument 0
+pop pointer 0
+// Compiling let  
+push argument 1
+pop this 4
+// Compiling return  
+push constant 0
+return  
+// End subroutine body  
+// End subroutine  
+// Compiling subroutine  
+// Compiling subroutine body  
+function Bat.getLeft 0
+push argument 0
+pop pointer 0
+// Compiling return  
+push this 0
+return  
+// End subroutine body  
+// End subroutine  
+// Compiling subroutine  
+// Compiling subroutine body  
+function Bat.getRight 0
+push argument 0
+pop pointer 0
+// Compiling return  
+push this 0
+push this 2
+add  
+return  
+// End subroutine body  
+// End subroutine  
+// Compiling subroutine  
+// Compiling subroutine body  
+function Bat.setWidth 0
+push argument 0
+pop pointer 0
+// Compiling do  
+push pointer 0
+call Bat.hide 1
+pop temp 0
+// Compiling let  
+push argument 1
+pop this 2
+// Compiling do  
+push pointer 0
+call Bat.show 1
+pop temp 0
+// Compiling return  
+push constant 0
+return  
+// End subroutine body  
+// End subroutine  
+// Compiling subroutine  
+// Compiling subroutine body  
+function Bat.move 0
+push argument 0
+pop pointer 0
+// Compiling if  
+push this 4
+push constant 1
+eq  
+not  
+if-goto Bat.label.1 
+// Compiling let  
+push this 0
+push constant 4
+sub  
+pop this 0
+// Compiling if  
+push this 0
+push constant 0
+lt  
+not  
+if-goto Bat.label.3 
+// Compiling let  
+push constant 0
+pop this 0
+goto Bat.label.2 
+label Bat.label.3 
+label Bat.label.2 
+// Compiling do  
+push constant 0
+call Screen.setColor 1
+pop temp 0
+// Compiling do  
+push this 0
+push this 2
+add  
+push constant 1
+add  
+push this 1
+push this 0
+push this 2
+add  
+push constant 4
+add  
+push this 1
+push this 3
+add  
+call Screen.drawRectangle 4
+pop temp 0
+// Compiling do  
+push constant 1
+neg  
+call Screen.setColor 1
+pop temp 0
+// Compiling do  
+push this 0
+push this 1
+push this 0
+push constant 3
+add  
+push this 1
+push this 3
+add  
+call Screen.drawRectangle 4
+pop temp 0
+goto Bat.label.0 
+label Bat.label.1 
+// Compiling else  
+// Compiling let  
+push this 0
+push constant 4
+add  
+pop this 0
+// Compiling if  
+push this 0
+push this 2
+add  
+push constant 511
+gt  
+not  
+if-goto Bat.label.5 
+// Compiling let  
+push constant 511
+push this 2
+sub  
+pop this 0
+goto Bat.label.4 
+label Bat.label.5 
+label Bat.label.4 
+// Compiling do  
+push constant 0
+call Screen.setColor 1
+pop temp 0
+// Compiling do  
+push this 0
+push constant 4
+sub  
+push this 1
+push this 0
+push constant 1
+sub  
+push this 1
+push this 3
+add  
+call Screen.drawRectangle 4
+pop temp 0
+// Compiling do  
+push constant 1
+neg  
+call Screen.setColor 1
+pop temp 0
+// Compiling do  
+push this 0
+push this 2
+add  
+push constant 3
+sub  
+push this 1
+push this 0
+push this 2
+add  
+push this 1
+push this 3
+add  
+call Screen.drawRectangle 4
+pop temp 0
+label Bat.label.0 
+// Compiling return  
+push constant 0
+return  
+// End subroutine body  
+// End subroutine  
