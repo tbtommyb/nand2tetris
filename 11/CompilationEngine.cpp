@@ -140,7 +140,7 @@ bool CompilationEngine::compileSubroutineDec()
         symbolTable.addSymbol("this", className, SymbolKind::ARGUMENT);
     }
 
-    const auto& returnType = oneOfToken(
+    oneOfToken(
                [this] { return readKeyword({"void"}); },
                [this] { return readType(); }
                );
@@ -160,7 +160,7 @@ bool CompilationEngine::compileParameterList()
 {
     // ((type varName) (',' type varName)*)?
 
-    if (!std::dynamic_pointer_cast<KeywordToken>(*token)) return false;
+    if(!(tokenMatches({"int", "char", "boolean"}) || std::dynamic_pointer_cast<IdentifierToken>(*token))) { return false; }
 
     if (!tokenMatches({")"})) {
         const auto& type = readType();
@@ -290,7 +290,7 @@ bool CompilationEngine::compileLet()
         vmWriter.writePop(Segment::TEMP, 1);
         vmWriter.writePop(Segment::POINTER, 1);
         vmWriter.writePush(Segment::TEMP, 1);
-        vmWriter.writePop(Segment::THAT, 1);
+        vmWriter.writePop(Segment::THAT, 0);
     } else {
         vmWriter.writePop(segment, ident->id);
     }
