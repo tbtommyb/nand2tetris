@@ -70,8 +70,10 @@ class Keyboard {
 
       do Output.printString(message);
 
+      let s = String.new(30);
+
       while (true) {
-        c = Keyboard.readChar();
+        let c = Keyboard.readChar();
         if (c = String.newLine()) {
           do Output.println();
           return s;
