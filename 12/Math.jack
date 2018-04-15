@@ -32,6 +32,10 @@ class Math {
       return;
     }
 
+    function int twoToThe(int i) {
+      return twoToThe[i];
+    }
+
     /** Returns the value of x at bit i. */
     function boolean bit(int x, int i) {
       return (x & twoToThe[i]) > 0;
@@ -85,6 +89,10 @@ class Math {
       var boolean negX, negY;
       var int q, result;
 
+      if (y = 0) {
+        do Sys.error(3);
+      }
+
       let negX = x < 0;
       let negY = y < 0;
       let x = Math.abs(x);
@@ -110,6 +118,10 @@ class Math {
     /** Returns the integer part of the square root of x. */
     function int sqrt(int x) {
       var int y, j, guess, guessSquared;
+
+      if (x < 0) {
+        do Sys.error(4);
+      }
 
       let y = 0;
       let j = 7;

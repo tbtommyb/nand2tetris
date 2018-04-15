@@ -39,6 +39,10 @@ class Screen {
     function void drawPixel(int x, int y) {
       var int row, col, bit, address, value;
 
+      if ((x < 0) | (x > 511) | (y < 0) | (y > 255)) {
+        do Sys.error(7);
+      }
+
       let col = x;
       let row = y;
 
@@ -62,6 +66,11 @@ class Screen {
     function void drawLine(int x1, int y1, int x2, int y2) {
       var int dx, dy, a, b, aInc, bInc;
       var int temp, overshoot, adyMinusbdx;
+
+      if ((x1 < 0) | (x1 > 511) | (y1 < 0) | (y1 > 255) |
+          (x2 < 0) | (x2 > 511) | (y2 < 0) | (y2 > 255)) {
+        do Sys.error(8);
+      }
 
       if (x1 > x2) {
         // swap if necessary
@@ -124,6 +133,12 @@ class Screen {
     function void drawRectangle(int x1, int y1, int x2, int y2) {
       var int dx, dy, a, b, temp;
 
+      if ((x1 < 0) | (x1 > 511) | (y1 < 0) | (y1 > 255) |
+          (x2 < 0) | (x2 > 511) | (y2 < 0) | (y2 > 255) |
+          (x1 > x2) | (y1 > y2)) {
+        do Sys.error(9);
+      }
+
       let a = 0;
       let b = 0;
 
@@ -147,6 +162,14 @@ class Screen {
     /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
     function void drawCircle(int x, int y, int r) {
       var int dy, sqrt, pointX1, pointX2, pointY;
+
+      if ((x < 0) | (x > 511) | (y < 0) | (y > 255)) {
+        do Sys.error(12);
+      }
+      if ((r < 0) | (r > 127) | ((x - r) < 0) | ((x + r) > 511) |
+         ((y - r) < 0) | ((y + r) > 255)) {
+        do Sys.error(13);
+      }
 
       let dy = -r;
 

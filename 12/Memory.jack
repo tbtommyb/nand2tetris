@@ -47,9 +47,13 @@ class Memory {
     function int alloc(int size) {
       var Array prevBlock, block;
 
+      if (size < 0) {
+        do Sys.error(5);
+      }
+
       let prevBlock = Memory.find(size);
       if (prevBlock = MAX) {
-        let block = null;
+        do Sys.error(6);
       } else {
         if (prevBlock = null) {
           let block = freeList;

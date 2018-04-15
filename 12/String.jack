@@ -17,6 +17,10 @@ class String {
     /** constructs a new empty string with a maximum length of maxLength
      *  and initial length of 0. */
     constructor String new(int maxLength) {
+      if (maxLength < 0) {
+        do Sys.error(14);
+      }
+
       let size = 0;
       let f_maxLength = maxLength + 1; // 0-terminated string
       let str = Array.new(f_maxLength);
@@ -39,17 +43,28 @@ class String {
 
     /** Returns the character at the j-th location of this string. */
     method char charAt(int j) {
+      if ((j < 0) | (j > (size - 1))) {
+        do Sys.error(15);
+      }
       return str[j];
     }
 
     /** Sets the character at the j-th location of this string to c. */
     method void setCharAt(int j, char c) {
+      if ((j < 0) | (j > (size - 1))) {
+        do Sys.error(16);
+      }
+
       let str[j] = c;
       return;
     }
 
     /** Appends c to this string's end and returns this string. */
     method String appendChar(char c) {
+      if (size = f_maxLength) {
+        do Sys.error(17);
+      }
+
       let str[size] = c;
       let size = size + 1;
       return this;
@@ -57,6 +72,10 @@ class String {
 
     /** Erases the last character from this string. */
     method void eraseLastChar() {
+      if (size = 0) {
+        do Sys.error(18);
+      }
+
       let size = size - 1;
       let str[size] = 0;
       return;
@@ -104,6 +123,10 @@ class String {
         let digit = val;
 
         while (digit > 9) {
+          if (size = f_maxLength) {
+            do Sys.error(19);
+          }
+
           let digit = digit / 10;
           let exponent = exponent * 10;
         }
