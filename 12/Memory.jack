@@ -1,0 +1,148 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Memory.jack
+
+/**
+ * This library provides two services: direct access to the computer's main
+ * memory (RAM), and allocation and recycling of memory blocks. The Hack RAM
+ * consists of 32,768 words, each holding a 16-bit binary number.
+ */
+class Memory {
+    static Array memory;
+    static Array freeList;
+    static int MAX, FREE_HDR, ALLOC_HDR, ALLOC_SIZE;
+
+    static int freeList_length;
+    static int freeList_next;
+
+    /** Initializes the class. */
+    function void init() {
+      let memory = 0;
+      let freeList = 2048;
+      let MAX = 16384;
+      let FREE_HDR = 2;
+      let ALLOC_HDR = 1;
+      let ALLOC_SIZE = -1;
+      let freeList_length = 0;
+      let freeList_next = 1;
+      let freeList[freeList_length] = MAX - freeList;
+      let freeList[freeList_next] = null;
+      return;
+    }
+
+    /** Returns the RAM value at the given address. */
+    function int peek(int address) {
+      return memory[address];
+    }
+
+    /** Sets the RAM value at the given address to the given value. */
+    function void poke(int address, int value) {
+      let memory[address] = value;
+      return;
+    }
+
+    /** Finds an available RAM block of the given size and returns
+     *  a reference to its base address. */
+    function int alloc(int size) {
+      var Array prevBlock, block;
+
+      let prevBlock = Memory.find(size);
+      if (prevBlock = MAX) {
+        let block = null;
+      } else {
+        if (prevBlock = null) {
+          let block = freeList;
+          let freeList = Memory.allocateBlock(block, size);
+        } else {
+          let block = prevBlock[freeList_next];
+          let prevBlock[freeList_next] = Memory.allocateBlock(block, size);
+        }
+      }
+      return block + ALLOC_HDR;
+    }
+
+    /** Find the first fitting block */
+    function Array find(int size) {
+      var Array current, previous;
+      var int currentSize;
+
+      let current = freeList;
+
+      while (~(current = null)) {
+        let currentSize = current[freeList_length] - ALLOC_HDR;
+        if (~(currentSize < size)) {
+          return previous;
+        }
+        let previous = current;
+        let current = current[freeList_next];
+      }
+
+      return MAX;
+    }
+
+    /** Allocate a new memory block. */
+    function Array allocateBlock(Array endBlock, int size) {
+      var Array next;
+      var int blockSize;
+
+      if (endBlock[freeList_length] > (size + FREE_HDR + ALLOC_HDR)) {
+        let next = endBlock + size + ALLOC_HDR;
+        let next[freeList_next] = endBlock[freeList_next];
+        let next[freeList_length] = endBlock[freeList_length] - next - endBlock;
+        let endBlock = endBlock + 1;
+        let endBlock[ALLOC_SIZE] = size + ALLOC_HDR;
+      }
+      else {
+        let next = endBlock[freeList_next];
+        let blockSize = endBlock[freeList_length];
+        let endBlock = endBlock + 1;
+        let endBlock[ALLOC_SIZE] = blockSize;
+      }
+
+      return next;
+    }
+
+    /** De-allocates the given object (cast as an array) by making
+     *  it available for future allocations. */
+    function void deAlloc(Array o) {
+      var int allocSize;
+      var Array prevBlock;
+      var Array nextBlock;
+
+      let allocSize = o[ALLOC_SIZE];
+      let o = o - ALLOC_HDR;
+
+      if (freeList > o) {
+        let prevBlock = null;
+      }
+      let prevBlock = freeList;
+      while (~(prevBlock[freeList_next] = null) & (prevBlock[freeList_next] < o)) {
+        let prevBlock = prevBlock[freeList_next];
+      }
+
+      if (prevBlock = null) {
+        let o[freeList_length] = allocSize;
+        let o[freeList_next] = freeList;
+        let freeList = o;
+        let prevBlock = o;
+      } else {
+        if ((prevBlock + prevBlock[freeList_length]) = o) {
+          let prevBlock[freeList_length] = prevBlock[freeList_length] + allocSize;
+        }
+        else {
+          let o[freeList_length] = allocSize;
+          let o[freeList_next] = prevBlock[freeList_next];
+          let prevBlock[freeList_next] = o;
+          let prevBlock = o;
+        }
+      }
+
+      if ((prevBlock + prevBlock[freeList_length]) = prevBlock[freeList_next]) {
+        let nextBlock = prevBlock[freeList_next];
+        let prevBlock[freeList_length] = prevBlock[freeList_length] + nextBlock[freeList_length];
+        let prevBlock[freeList_next] = nextBlock[freeList_next];
+      }
+      return;
+    }
+}
